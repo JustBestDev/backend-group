@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// =========================
+// ENUM
+// =========================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =========================
+// USER
+// =========================
+
+model User {
+  id        Int        @id @default(autoincrement())
+  username  String     @unique
+  email     String     @unique
+  password  String
+  status    UserStatus @default(ACTIVE)
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+
+  profile Profile?
+  post    Post?
+}
+
+// =========================
+// PROFILE
+// =========================
+
+model Profile {
+  id           Int       @id @default(autoincrement())
+  firstname    String
+  lastname     String
+  phone        String?
+  address      String?
+  profileImage String?
+  bio          String?   @db.Text
+  gender       Gender?
+  birthdate    DateTime?
+  occupation   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  verifyId     Boolean   @default(false)
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// POST
+// =========================
+
+model Post {
+  id            Int       @id @default(autoincrement())
+  imageUrl      String?
+  title         String
+  description   String?   @db.Text
+  propertyType  String
+  monthlyRent   Decimal   @db.Decimal(10, 2)
+  furniture     String?
+  availableDate DateTime?
+  deposit       Decimal?  @db.Decimal(10, 2)
+  bedroom       Int?
+  status        String?
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  document     Document?
+  address      Address?
+  postOptional PostOptional[]
+}
+
+// =========================
+// DOCUMENT
+// =========================
+
+model Document {
+  id                 Int                @id @default(autoincrement())
+  verifyOwner        Boolean            @default(false)
+  verificationStatus VerificationStatus @default(PENDING)
+  ownerDocumentUrl   String?
+  idDocumentUrl      String?
+  createdAt          DateTime           @default(now())
+
+  postId Int  @unique
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// ADDRESS
+// =========================
+
+model Address {
+  id          Int      @id @default(autoincrement())
+  country     String
+  province    String
+  district    String
+  subDistrict String
+  postcode    String
+  road        String?
+  building    String?
+  floor       String?
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+
+  postId Int  @unique
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// OPTIONAL
+// =========================
+
+model Optional {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  postOptional PostOptional[]
+}
+
+// =========================
+// POST OPTIONAL
+// Many-to-Many
+// =========================
+
+model PostOptional {
+  postId     Int
+  optionalId Int
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  optional Optional @relation(fields: [optionalId], references: [id], onDelete: Cascade)
+
+  @@id([postId, optionalId])
+}
