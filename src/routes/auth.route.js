@@ -1,9 +1,9 @@
 import express from 'express'
-import { register } from '../controllers/auth.controller.js'
+import { login, register } from '../controllers/auth.controller.js'
 const authRoute = express()
 
 authRoute.post('/register', register)
-// authRoute.post('/login', )
+authRoute.post('/login', login)
 // authRoute.post('/logout', )
 // authRoute.get('/me',)
 // authRoute.patch('/me',)
