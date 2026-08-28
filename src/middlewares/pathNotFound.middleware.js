@@ -1,6 +1,5 @@
 export const partNotFound = (req, res) => {
-    res.status(404).json({
-        status: "Error",
-        message: "Path Not Found"
-    })
-}
+  res.status(404).json({
+    message: `Path ${req.originalUrl} not found`,
+  });
+};
