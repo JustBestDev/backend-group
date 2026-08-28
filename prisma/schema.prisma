@@ -12,12 +12,9 @@ datasource db {
   provider = "mysql"
 }
 
-// =========================
-// ENUM
-// =========================
-
 enum Role {
   USER
+  OWNER
   ADMIN
 }
 
@@ -33,136 +30,310 @@ enum Gender {
   OTHER
 }
 
-enum VerificationStatus {
+enum ApplicationStatus {
   PENDING
   APPROVED
   REJECTED
 }
 
-// =========================
-// USER
-// =========================
+enum PropertyType {
+  HOUSE
+  CONDO
+  APARTMENT
+  DORMITORY
+  OTHER
+}
+
+enum RentType {
+  INDIVIDUAL_ROOM
+  WHOLE_UNIT
+}
+
+enum PublishStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RENTED
+  CLOSED
+}
+
+enum RoomStatus {
+  AVAILABLE
+  RESERVED
+  RENTED
+}
+
+enum CommunityPostStatus {
+  OPEN
+  FULL
+  CLOSED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum CommunityMemberRole {
+  CREATOR
+  MEMBER
+}
+
+enum RentalStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
 
 model User {
   id        Int        @id @default(autoincrement())
   username  String     @unique
   email     String     @unique
   password  String
-  status    UserStatus @default(ACTIVE)
   role      Role       @default(USER)
+  status    UserStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   profile Profile?
-  post    Post?
-}
 
-// =========================
-// PROFILE
-// =========================
+  ownerApplications    OwnerApplication[] @relation("OwnerApplicationUser")
+  reviewedApplications OwnerApplication[] @relation("OwnerApplicationReviewer")
+
+  properties Property[]
+
+  communityPosts   CommunityPost[]
+  joinRequests     JoinRequest[]
+  communityMembers CommunityMember[]
+
+  conversationMembers ConversationMember[]
+  messages            Message[]
+
+  ownedRentals  Rental[]       @relation("RentalOwner")
+  rentalMembers RentalMember[]
+}
 
 model Profile {
-  id           Int       @id @default(autoincrement())
-  firstname    String
-  lastname     String
-  phone        String?
-  address      String?
-  profileImage String?
-  bio          String?   @db.Text
-  gender       Gender?
-  birthdate    DateTime?
-  occupation   String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  verifyId     Boolean   @default(false)
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  firstName       String?
+  lastName        String?
+  phone           String?
+  profileImageUrl String?
+  bio             String?   @db.Text
+  gender          Gender?
+  birthdate       DateTime?
+  occupation      String?
+  currentAddress  String?
+  isVerified      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// =========================
-// POST
-// =========================
+model OwnerApplication {
+  id           Int               @id @default(autoincrement())
+  userId       Int
+  reviewedById Int?
+  status       ApplicationStatus @default(PENDING)
+  documentUrl  String?
+  rejectReason String?
+  createdAt    DateTime          @default(now())
+  reviewedAt   DateTime?
 
-model Post {
-  id            Int       @id @default(autoincrement())
-  imageUrl      String?
-  title         String
-  description   String?   @db.Text
-  propertyType  String
-  monthlyRent   Decimal   @db.Decimal(10, 2)
-  furniture     String?
-  availableDate DateTime?
-  deposit       Decimal?  @db.Decimal(10, 2)
-  bedroom       Int?
-  status        String?
-
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  document     Document?
-  address      Address?
-  postOptional PostOptional[]
+  user       User  @relation("OwnerApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("OwnerApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 }
 
-// =========================
-// DOCUMENT
-// =========================
+model Property {
+  id             Int            @id @default(autoincrement())
+  ownerId        Int
+  title          String
+  description    String         @db.Text
+  propertyType   PropertyType
+  rentType       RentType
+  monthlyRent    Decimal        @db.Decimal(10, 2)
+  deposit        Decimal?       @db.Decimal(10, 2)
+  availableDate  DateTime?
+  totalBedrooms  Int?
+  publishStatus  PublishStatus  @default(PENDING)
+  propertyStatus PropertyStatus @default(AVAILABLE)
+  rejectReason   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-model Document {
-  id                 Int                @id @default(autoincrement())
-  verifyOwner        Boolean            @default(false)
-  verificationStatus VerificationStatus @default(PENDING)
-  ownerDocumentUrl   String?
-  idDocumentUrl      String?
-  createdAt          DateTime           @default(now())
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  postId Int  @unique
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  address PropertyAddress?
+  rooms   Room[]
+  images  PropertyImage[]
+
+  communityPosts CommunityPost[]
+  conversations  Conversation[]
+  rentals        Rental[]
 }
 
-// =========================
-// ADDRESS
-// =========================
-
-model Address {
+model PropertyAddress {
   id          Int      @id @default(autoincrement())
-  country     String
+  propertyId  Int      @unique
   province    String
-  district    String
-  subDistrict String
-  postcode    String
+  district    String?
+  subDistrict String?
+  postcode    String?
   road        String?
   building    String?
-  floor       String?
   latitude    Decimal? @db.Decimal(10, 7)
   longitude   Decimal? @db.Decimal(10, 7)
 
-  postId Int  @unique
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 }
 
-// =========================
-// OPTIONAL
-// =========================
+model Room {
+  id          Int        @id @default(autoincrement())
+  propertyId  Int
+  roomName    String
+  description String?    @db.Text
+  monthlyRent Decimal    @db.Decimal(10, 2)
+  status      RoomStatus @default(AVAILABLE)
+  capacity    Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-model Optional {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  postOptional PostOptional[]
+  rentals Rental[]
 }
 
-// =========================
-// POST OPTIONAL
-// Many-to-Many
-// =========================
+model PropertyImage {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  imageUrl   String
+  isCover    Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-model PostOptional {
-  postId     Int
-  optionalId Int
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
 
-  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  optional Optional @relation(fields: [optionalId], references: [id], onDelete: Cascade)
+model CommunityPost {
+  id              Int                 @id @default(autoincrement())
+  propertyId      Int
+  creatorId       Int
+  title           String
+  description     String?             @db.Text
+  requiredMembers Int
+  status          CommunityPostStatus @default(OPEN)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
-  @@id([postId, optionalId])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  creator  User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  joinRequests JoinRequest[]
+  members      CommunityMember[]
+}
+
+model JoinRequest {
+  id              Int               @id @default(autoincrement())
+  communityPostId Int
+  userId          Int
+  status          JoinRequestStatus @default(PENDING)
+  message         String?           @db.Text
+  createdAt       DateTime          @default(now())
+  reviewedAt      DateTime?
+
+  communityPost CommunityPost @relation(fields: [communityPostId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityPostId, userId])
+}
+
+model CommunityMember {
+  communityPostId Int
+  userId          Int
+  memberRole      CommunityMemberRole @default(MEMBER)
+  joinedAt        DateTime            @default(now())
+
+  communityPost CommunityPost @relation(fields: [communityPostId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([communityPostId, userId])
+}
+
+model Conversation {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  members  ConversationMember[]
+  messages Message[]
+}
+
+model ConversationMember {
+  conversationId Int
+  userId         Int
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  message        String   @db.Text
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Rental {
+  id          Int          @id @default(autoincrement())
+  propertyId  Int
+  roomId      Int?
+  ownerId     Int
+  startDate   DateTime
+  endDate     DateTime?
+  monthlyRent Decimal      @db.Decimal(10, 2)
+  status      RentalStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  room Room? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  owner User @relation("RentalOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members RentalMember[]
+}
+
+model RentalMember {
+  rentalId Int
+  userId   Int
+  joinedAt DateTime @default(now())
+
+  rental Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([rentalId, userId])
 }
