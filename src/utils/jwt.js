@@ -4,7 +4,8 @@ export const createTokenUser = (user) => {
     const payload = {
         id: user.id,
         email: user.email,
-        username: user.username
+        username: user.username,
+        role: user.role
     }
     const token = jwt.sign(payload, process.env.JWT_SECRET_USER, {
         algorithm: 'HS256',
