@@ -1,7 +1,13 @@
 import bcrypt from "bcrypt";
 import createError from "http-errors";
-import { loginSchema, registerSchema } from "../validations/schema.js";
+
+import {
+  loginSchema,
+  registerSchema,
+} from "../validations/schema.js";
+
 import { createTokenUser } from "../utils/jwt.js";
+
 import {
   createUser,
   findUserByEmail,
@@ -9,62 +15,139 @@ import {
 } from "../services/auth.service.js";
 
 export const register = async (req, res, next) => {
-  const { username, email, password, confirmPassword } = req.body;
+  try {
+    // ใช้ข้อมูลที่ผ่าน Zod Validation แล้ว
+    const {
+      username,
+      email,
+      password,
+    } = registerSchema.parse(req.body);
 
-  const data = registerSchema.parse(req.body)
+    const normalizedEmail = email
+      .trim()
+      .toLowerCase();
 
-  const emailExist = await findUserByEmail(email);
+    const normalizedUsername = username.trim();
 
-  if (emailExist) {
-    return next(createError(400, "Email  already exits"));
+    const emailExist = await findUserByEmail(
+      normalizedEmail
+    );
+
+    if (emailExist) {
+      return next(
+        createError(409, "Email already exists")
+      );
+    }
+
+    const usernameExist = await findUserByUsername(
+      normalizedUsername
+    );
+
+    if (usernameExist) {
+      return next(
+        createError(409, "Username already exists")
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      password,
+      10
+    );
+
+    const newUser = await createUser(
+      normalizedUsername,
+      normalizedEmail,
+      hashedPassword
+    );
+
+    return res.status(201).json({
+      message: "Registered successfully",
+
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.status,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const usernameExist = await findUserByUsername(username);
-
-  if (usernameExist) {
-    return next(createError(400, "Username already exits"));
-  }
-
-  const hashPassword = await bcrypt.hash(password, 8);
-
-  const newUser = await createUser(username, email, hashPassword);
-
-  res.status(201).json({
-    message: "Register successfully",
-    user: {
-      id: newUser.id,
-      username: newUser.username,
-      email: newUser.email,
-      role: newUser.role,
-    },
-  });
 };
 
 export const login = async (req, res, next) => {
-    const { email, password } = req.body
+  try {
+    // ใช้ข้อมูลที่ผ่าน Zod Validation แล้ว
+    const {
+      email,
+      password,
+    } = loginSchema.parse(req.body);
 
-    const data = loginSchema.parse(req.body)
+    const normalizedEmail = email
+      .trim()
+      .toLowerCase();
 
-    const user = await findUserByEmail(email)
+    const user = await findUserByEmail(
+      normalizedEmail
+    );
 
     if (!user) {
-        return next(createError(401, "Invalid credentials"))
+      return next(
+        createError(
+          401,
+          "Invalid email or password"
+        )
+      );
     }
-    const isMatch = await bcrypt.compare(password, user.password)
 
-    if (!isMatch) {
-        return next(createError(401, "Invalid credentials"))
+    const isPasswordMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!isPasswordMatch) {
+      return next(
+        createError(
+          401,
+          "Invalid email or password"
+        )
+      );
     }
 
-    const token = await createTokenUser(user)
-    // console.log('token', token)
-    res.status(200).json({
-        message: "Login successfully",
-        token: token,
-        user: {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-        }
-    })
-}
+    if (user.status === "SUSPENDED") {
+      return next(
+        createError(
+          403,
+          "Your account has been suspended"
+        )
+      );
+    }
+
+    if (user.status === "BANNED") {
+      return next(
+        createError(
+          403,
+          "Your account has been banned"
+        )
+      );
+    }
+
+    const token = await createTokenUser(user);
+
+    return res.status(200).json({
+      message: "Logged in successfully",
+      token,
+
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
