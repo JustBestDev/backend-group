@@ -3,7 +3,7 @@ import express from "express";
 import authRoute from "./routes/auth.route.js";
 // import profileRoute from "./routes/profile.route.js";
 // import ownerApplicationRoute from "./routes/ownerApplication.route.js";
-// import propertyRoute from "./routes/property.route.js";
+import propertyRoute from "./routes/property.route.js";
 // import roomRoute from "./routes/room.route.js";
 // import communityRoute from "./routes/community.route.js";
 // import joinRequestRoute from "./routes/joinRequest.route.js";
@@ -25,7 +25,7 @@ app.get("/test", (req, res) => {
 app.use("/api/auth", authRoute);
 // app.use("/api/profiles", profileRoute);
 // app.use("/api/owner-applications", ownerApplicationRoute);
-// app.use("/api/properties", propertyRoute);
+app.use("/api/properties", propertyRoute);
 // app.use("/api/rooms", roomRoute);
 // app.use("/api/community-posts", communityRoute);
 // app.use("/api/join-requests", joinRequestRoute);
