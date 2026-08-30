@@ -46,6 +46,10 @@ export const createUser = async (
       username,
       email,
       password: hashedPassword,
+
+      profile: {
+        create: {},
+      },
     },
 
     select: {
