@@ -5,6 +5,6 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 const roomRoute = express();
 
 roomRoute.delete("/:roomId", authenticate, deleteRoom);
-roomRoute.patch("/:roomId", updateRoom);
+roomRoute.patch("/:roomId", authenticate, updateRoom);
 
 export default roomRoute;

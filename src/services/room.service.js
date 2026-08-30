@@ -32,9 +32,35 @@ export async function deleteRoomService(roomId, userId) {
   }
 }
 
-export async function updateRoomService(params) {
+export async function updateRoomService(roomId, body, userId) {
   try {
-    const updateRoom = await prisma.room.findFirst({});
+    const room = await prisma.room.findFirst({
+      where: {
+        id: Number(roomId),
+      },
+      include: {
+        property: true,
+      },
+    });
+    if (!room) {
+      throw createError(400, "Room not found");
+    }
+    if (room.property.ownerId !== userId) {
+      throw createError(401, "You are not the owner");
+    }
+
+    const updateRoom = await prisma.room.update({
+      where: {
+        id: Number(roomId),
+      },
+      data: {
+        roomName: body.roomName,
+        description: body.description,
+        monthlyRent: body.monthlyRent,
+        status: body.status,
+        capacity: body.capacity,
+      },
+    });
     return updateRoom;
   } catch (error) {
     if (error.status) {
