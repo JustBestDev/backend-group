@@ -1,9 +1,12 @@
-import { getAllCommunitiesService } from "../services/community.service.js";
+import {
+  getAllCommunitiesByIdService,
+  getAllCommunitiesService,
+} from "../services/community.service.js";
 
 // Get all communities
 export const getAllCommunities = async (req, res, next) => {
   try {
-    const result = await getAllCommunitiesService()
+    const result = await getAllCommunitiesService();
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
@@ -11,18 +14,11 @@ export const getAllCommunities = async (req, res, next) => {
 };
 
 // Get community by postId
-export const getCommunityById = (req, res, next) => {
+export const getCommunityById = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const mockData = {
-      id: postId,
-      name: "Tech Enthusiasts",
-      description: "A community for tech lovers",
-      membersCount: 150,
-      createdAt: new Date(),
-      posts: 42,
-    };
-    return res.status(200).json(mockData);
+    const result = await getAllCommunitiesByIdService(postId);
+    return res.status(200).json(result);
   } catch (error) {
     return next(error);
   }
