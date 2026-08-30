@@ -5,6 +5,7 @@ import { allowRoles } from "../middlewares/role.middleware.js";
 
 import {
   getUsers,
+  changeUserStatus,
   getAdminDashboard,
   getOwnerApplications,
   getOwnerApplicationById,
@@ -29,6 +30,11 @@ router.use(allowRoles("ADMIN"));
 router.get(
   "/users",
   getUsers
+);
+
+router.patch(
+  "/users/:userId/status",
+  changeUserStatus
 );
 
 // ================================

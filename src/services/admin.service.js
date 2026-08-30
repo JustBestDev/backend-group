@@ -22,6 +22,43 @@ export const findAllUsers = async () => {
   });
 };
 
+export const findAdminUserById = async (userId) => {
+  return await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+
+    select: {
+      id: true,
+    },
+  });
+};
+
+export const updateUserStatus = async (
+  userId,
+  status
+) => {
+  return await prisma.user.update({
+    where: {
+      id: userId,
+    },
+
+    data: {
+      status,
+    },
+
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+};
+
 // ==============================
 // ADMIN DASHBOARD
 // ==============================

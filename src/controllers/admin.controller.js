@@ -1,6 +1,11 @@
 import createError from "http-errors";
 import { prisma } from "../lib/prisma.js";
-import { findAllUsers } from "../services/admin.service.js";
+import { updateUserStatusSchema } from "../validations/schema.js";
+import {
+  findAllUsers,
+  findAdminUserById,
+  updateUserStatus,
+} from "../services/admin.service.js";
 
 // ========================================
 // GET /api/admin/users
@@ -13,6 +18,36 @@ export const getUsers = async (req, res, next) => {
     return res.status(200).json({
       message: "Users retrieved successfully",
       data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ========================================
+// PATCH /api/admin/users/:userId/status
+// Update a user's status
+// ========================================
+export const changeUserStatus = async (req, res, next) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return next(createError(400, "Invalid user ID"));
+    }
+
+    const { status } = updateUserStatusSchema.parse(req.body);
+    const user = await findAdminUserById(userId);
+
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    const updatedUser = await updateUserStatus(userId, status);
+
+    return res.status(200).json({
+      message: "User status updated successfully",
+      data: updatedUser,
     });
   } catch (error) {
     next(error);

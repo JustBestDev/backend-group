@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserStatus } from "../../generated/prisma/client.js";
 
 export const registerSchema = z
   .object({
@@ -20,6 +21,12 @@ export const loginSchema = z.object({
 
   password: z.string().min(1, "password is required"),
 });
+
+export const updateUserStatusSchema = z
+  .object({
+    status: z.enum(UserStatus),
+  })
+  .strict();
 
 export const communityPostSchema = z.object({
   propertyId: z.number().min(1, "propertyId must be at least 1"),
