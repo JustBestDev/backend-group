@@ -31,7 +31,6 @@ export const findUserById = async (id) => {
       role: true,
       status: true,
       createdAt: true,
-      updatedAt: true,
     },
   });
 };

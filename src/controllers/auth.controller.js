@@ -11,6 +11,7 @@ import { createTokenUser } from "../utils/jwt.js";
 import {
   createUser,
   findUserByEmail,
+  findUserById,
   findUserByUsername,
 } from "../services/auth.service.js";
 
@@ -152,14 +153,16 @@ export const login = async (req, res, next) => {
   }
 };
 
-export const getMe = async (req, res) => {
-  console.log('req.user', req.user)
-  const { id, username, email, role, status } = req.user
-  res.status(200).json({
-    id,
-    username,
-    email,
-    role,
-    status
-  })
-}
+export const getMe = async (req, res, next) => {
+  try {
+    const user = await findUserById(req.user.id);
+
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    next(error);
+  }
+};

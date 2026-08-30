@@ -6,7 +6,7 @@ const authRoute = express()
 authRoute.post('/register', register)
 authRoute.post('/login', login)
 // authRoute.post('/logout', )
-authRoute.get('/me',authenticate,getMe)
+authRoute.get('/me', authenticate, getMe)
 // authRoute.patch('/me',)
 
 export default authRoute
