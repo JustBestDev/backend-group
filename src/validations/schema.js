@@ -21,6 +21,16 @@ export const loginSchema = z.object({
   password: z.string().min(1, "password is required"),
 });
 
+export const ownerApplicationSchema = z
+  .object({
+    documentUrl: z
+      .string()
+      .trim()
+      .url("documentUrl must be a valid URL")
+      .optional(),
+  })
+  .strict();
+
 export const communityPostSchema = z.object({
   propertyId: z.number().min(1, "propertyId must be at least 1"),
 
