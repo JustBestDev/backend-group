@@ -25,12 +25,39 @@ const profileSelect = {
   },
 };
 
+const publicProfileSelect = {
+  id: true,
+  userId: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+  bio: true,
+  gender: true,
+  occupation: true,
+  isVerified: true,
+  user: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
+};
+
 export const findProfileByUserId = async (userId) => {
   return await prisma.profile.findUnique({
     where: {
       userId: Number(userId),
     },
     select: profileSelect,
+  });
+};
+
+export const findPublicProfileByUserId = async (userId) => {
+  return await prisma.profile.findUnique({
+    where: {
+      userId: Number(userId),
+    },
+    select: publicProfileSelect,
   });
 };
 
