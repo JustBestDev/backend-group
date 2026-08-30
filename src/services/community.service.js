@@ -85,3 +85,27 @@ export async function getCommunityJoinRequestsService(postId, id) {
     throw createError(500, error.message);
   }
 }
+
+export async function getCommunityMembersService(postId) {
+  try {
+    const communityMember = await prisma.communityMember.findMany({
+      where: {
+        communityPostId: Number(postId),
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            profile: true,
+          },
+        },
+      },
+    });
+    return communityMember;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
