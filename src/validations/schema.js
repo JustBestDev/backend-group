@@ -32,3 +32,11 @@ export const communityPostSchema = z.object({
 
   status: z.string().optional(),
 });
+
+export const registerRoomSchema = z.object({
+  roomName: z.string().min(1, "roomName is required").trim(),
+  description: z.string().min(1, "description is required").trim(),
+  monthlyRent: z.number().optional(),
+  status: z.any().optional(),
+  capacity: z.number().optional(),
+});
