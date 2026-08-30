@@ -52,11 +52,13 @@ export const getCommunityMembers = async (req, res, next) => {
   }
 };
 
-// TODO : ทำต่อ
 // Patch update communities post
 export const updateCommunityPost = async (req, res, next) => {
   try {
-    const result = await updateCommunityPostService();
+    const postData = communityPostSchema.parse(req.body);
+    const { postId } = req.params;
+    const { id } = req.user;
+    const result = await updateCommunityPostService(postData, id, postId);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

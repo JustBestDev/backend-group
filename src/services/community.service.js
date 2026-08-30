@@ -110,9 +110,39 @@ export async function getCommunityMembersService(postId) {
   }
 }
 
-// TODO : ทำต่อ
-export async function updateCommunityPostService(params) {
+export async function updateCommunityPostService(postData, creatorId, postId) {
   try {
+    // เช็ค property มีอยู่หรือไม่
+    const property = await prisma.property.findUnique({
+      where: {
+        id: Number(postData.propertyId),
+      },
+    });
+    if (!property) {
+      throw createError(400, "Property not found");
+    }
+    const updateCommunityPost = await prisma.communityPost.update({
+      where: {
+        id: Number(postId),
+      },
+      data: {
+        title: postData.title,
+        description: postData.description,
+        requiredMembers: postData.requiredMembers,
+        status: postData.status || "OPEN",
+        property: {
+          connect: {
+            id: Number(postData.propertyId),
+          },
+        },
+        creator: {
+          connect: {
+            id: Number(creatorId),
+          },
+        },
+      },
+    });
+    return updateCommunityPost;
   } catch (error) {
     if (error.status) {
       throw error;

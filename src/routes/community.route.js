@@ -19,7 +19,7 @@ communityRoute.get(
   getCommunityJoinRequests,
 );
 communityRoute.get("/:postId/members", getCommunityMembers);
-communityRoute.patch("/:postId", updateCommunityPost);
+communityRoute.patch("/:postId", authenticate, updateCommunityPost);
 communityRoute.post("/", authenticate, createCommunityPost);
 
 export default communityRoute;
