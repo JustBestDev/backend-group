@@ -4,6 +4,7 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
 
 import {
+  getUsers,
   getAdminDashboard,
   getOwnerApplications,
   getOwnerApplicationById,
@@ -20,6 +21,15 @@ router.use(authenticate);
 
 // และต้องมี role เป็น ADMIN
 router.use(allowRoles("ADMIN"));
+
+// ================================
+// USER MANAGEMENT
+// ================================
+
+router.get(
+  "/users",
+  getUsers
+);
 
 // ================================
 // ADMIN DASHBOARD

@@ -1,5 +1,23 @@
 import createError from "http-errors";
 import { prisma } from "../lib/prisma.js";
+import { findAllUsers } from "../services/admin.service.js";
+
+// ========================================
+// GET /api/admin/users
+// Get all users
+// ========================================
+export const getUsers = async (req, res, next) => {
+  try {
+    const users = await findAllUsers();
+
+    return res.status(200).json({
+      message: "Users retrieved successfully",
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ========================================
 // GET /api/admin/dashboard

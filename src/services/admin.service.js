@@ -1,6 +1,28 @@
 import { prisma } from "../lib/prisma.js";
 
 // ==============================
+// USER MANAGEMENT
+// ==============================
+
+export const findAllUsers = async () => {
+  return await prisma.user.findMany({
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+// ==============================
 // ADMIN DASHBOARD
 // ==============================
 
