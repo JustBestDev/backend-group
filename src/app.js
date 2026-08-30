@@ -7,12 +7,13 @@ import authRoute from "./routes/auth.route.js";
 // import roomRoute from "./routes/room.route.js";
 // import communityRoute from "./routes/community.route.js";
 // import joinRequestRoute from "./routes/joinRequest.route.js";
-// import conversationRoute from "./routes/conversation.route.js";
+import conversationRoute from "./routes/conversation.route.js";
 // import rentalRoute from "./routes/rental.route.js";
-// import adminRoute from "./routes/admin.route.js";
+import adminRoute from "./routes/admin.route.js";
 
 import { partNotFound } from "./middlewares/pathNotFound.middleware.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+
 
 const app = express();
 
@@ -29,9 +30,9 @@ app.use("/api/auth", authRoute);
 // app.use("/api/rooms", roomRoute);
 // app.use("/api/community-posts", communityRoute);
 // app.use("/api/join-requests", joinRequestRoute);
-// app.use("/api/conversations", conversationRoute);
+app.use("/api/conversations", conversationRoute);
 // app.use("/api/rentals", rentalRoute);
-// app.use("/api/admin", adminRoute);
+app.use("/api/admin", adminRoute);
 
 app.use(partNotFound);
 
