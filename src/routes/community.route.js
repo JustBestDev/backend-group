@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createCommunityPost,
+  deleteCommunityPost,
   getAllCommunities,
   getCommunityById,
   getCommunityJoinRequests,
@@ -27,5 +28,6 @@ communityRoute.post(
   authenticate,
   joinRequestCommunityPost,
 );
+communityRoute.delete("/:postId", authenticate, deleteCommunityPost);
 
 export default communityRoute;

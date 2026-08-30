@@ -1,5 +1,6 @@
 import {
   createCommunityPostService,
+  deleteCommunityPostService,
   getAllCommunitiesByIdService,
   getAllCommunitiesService,
   getCommunityJoinRequestsService,
@@ -78,12 +79,24 @@ export const createCommunityPost = async (req, res, next) => {
   }
 };
 
+// Post Join request community post
 export const joinRequestCommunityPost = async (req, res, next) => {
   try {
     const { postId } = req.params;
     const { message } = req.body;
     const { id } = req.user;
     const result = await joinRequestCommunityPostService(postId, message, id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Delete community post
+export const deleteCommunityPost = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const result = await deleteCommunityPostService(postId);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

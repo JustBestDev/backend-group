@@ -235,3 +235,19 @@ export async function joinRequestCommunityPostService(postId, message, userId) {
     throw createError(500, error.message);
   }
 }
+
+export async function deleteCommunityPostService(postId) {
+  try {
+    const deleteCommunityPost = await prisma.communityPost.delete({
+      where: {
+        id: Number(postId),
+      },
+    });
+    return deleteCommunityPost;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
