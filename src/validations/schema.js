@@ -20,3 +20,15 @@ export const loginSchema = z.object({
 
   password: z.string().min(1, "password is required"),
 });
+
+export const communityPostSchema = z.object({
+  propertyId: z.number().min(1, "propertyId must be at least 1"),
+
+  title: z.string().min(6, "title must be at least 6 characters"),
+
+  description: z.string(),
+
+  requiredMembers: z.number().min(1, "requiredMembers must be at least 1"),
+
+  status: z.string().optional(),
+});

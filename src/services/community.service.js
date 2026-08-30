@@ -109,3 +109,54 @@ export async function getCommunityMembersService(postId) {
     throw createError(500, error.message);
   }
 }
+
+// TODO : ทำต่อ
+export async function updateCommunityPostService(params) {
+  try {
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function createCommunityPostService(postData, creatorId) {
+  try {
+    // เช็ค property มีอยู่หรือไม่
+    const property = await prisma.property.findUnique({
+      where: {
+        id: Number(postData.propertyId),
+      },
+    });
+
+    if (!property) {
+      throw createError(400, "Property not found");
+    }
+
+    const createCommunityPost = await prisma.communityPost.create({
+      data: {
+        title: postData.title,
+        description: postData.description,
+        requiredMembers: postData.requiredMembers,
+        status: postData.status || "OPEN",
+        property: {
+          connect: {
+            id: Number(postData.propertyId),
+          },
+        },
+        creator: {
+          connect: {
+            id: Number(creatorId),
+          },
+        },
+      },
+    });
+    return createCommunityPost;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
