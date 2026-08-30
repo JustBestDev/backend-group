@@ -1,6 +1,7 @@
 import {
   getAllCommunitiesByIdService,
   getAllCommunitiesService,
+  getCommunityJoinRequestsService,
 } from "../services/community.service.js";
 
 // Get all communities
@@ -25,26 +26,12 @@ export const getCommunityById = async (req, res, next) => {
 };
 
 // Get join requests for a community
-export const getCommunityJoinRequests = (req, res, next) => {
+export const getCommunityJoinRequests = async (req, res, next) => {
   try {
     const { postId } = req.params;
-    const mockData = [
-      {
-        id: 1,
-        userId: 101,
-        username: "john_doe",
-        email: "john@example.com",
-        requestedAt: new Date(),
-      },
-      {
-        id: 2,
-        userId: 102,
-        username: "jane_smith",
-        email: "jane@example.com",
-        requestedAt: new Date(),
-      },
-    ];
-    return res.status(200).json(mockData);
+    const { id } = req.user;
+    const result = await getCommunityJoinRequestsService(postId, id);
+    return res.status(200).json(result);
   } catch (error) {
     return next(error);
   }

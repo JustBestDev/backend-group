@@ -47,3 +47,41 @@ export async function getAllCommunitiesByIdService(postId) {
     throw createError(500, error.message);
   }
 }
+
+export async function getCommunityJoinRequestsService(postId, id) {
+  try {
+    const communityPost = await prisma.communityPost.findUnique({
+      where: {
+        id: Number(postId),
+      },
+    });
+
+    if (!communityPost) {
+      throw createError(400, "Community post not found");
+    }
+
+    if (communityPost.creatorId !== Number(id)) {
+      throw createError(403, "You are not the creator of this post");
+    }
+
+    const joinRequest = await prisma.joinRequest.findMany({
+      where: {
+        communityPostId: Number(postId),
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            profile: true,
+          },
+        },
+      },
+    });
+    return joinRequest;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
