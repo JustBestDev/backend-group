@@ -151,3 +151,15 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getMe = async (req, res) => {
+  console.log('req.user', req.user)
+  const { id, username, email, role, status } = req.user
+  res.status(200).json({
+    id,
+    username,
+    email,
+    role,
+    status
+  })
+}
