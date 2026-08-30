@@ -4,6 +4,7 @@ import {
   getAllCommunitiesService,
   getCommunityJoinRequestsService,
   getCommunityMembersService,
+  joinRequestCommunityPostService,
   updateCommunityPostService,
 } from "../services/community.service.js";
 import { communityPostSchema } from "../validations/schema.js";
@@ -71,6 +72,18 @@ export const createCommunityPost = async (req, res, next) => {
     const postData = communityPostSchema.parse(req.body);
     const { id } = req.user;
     const result = await createCommunityPostService(postData, id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const joinRequestCommunityPost = async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+    const { message } = req.body;
+    const { id } = req.user;
+    const result = await joinRequestCommunityPostService(postId, message, id);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

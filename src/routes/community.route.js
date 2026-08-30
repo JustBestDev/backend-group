@@ -5,6 +5,7 @@ import {
   getCommunityById,
   getCommunityJoinRequests,
   getCommunityMembers,
+  joinRequestCommunityPost,
   updateCommunityPost,
 } from "../controllers/community.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
@@ -21,5 +22,10 @@ communityRoute.get(
 communityRoute.get("/:postId/members", getCommunityMembers);
 communityRoute.patch("/:postId", authenticate, updateCommunityPost);
 communityRoute.post("/", authenticate, createCommunityPost);
+communityRoute.post(
+  "/:postId/join-requests",
+  authenticate,
+  joinRequestCommunityPost,
+);
 
 export default communityRoute;

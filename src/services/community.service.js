@@ -190,3 +190,48 @@ export async function createCommunityPostService(postData, creatorId) {
     throw createError(500, error.message);
   }
 }
+
+export async function joinRequestCommunityPostService(postId, message, userId) {
+  try {
+    const communityPost = await prisma.communityPost.findUnique({
+      where: {
+        id: Number(postId),
+      },
+    });
+    if (!communityPost) {
+      throw createError(400, "Community Post not found");
+    }
+
+    const alreadyRequested = await prisma.joinRequest.findFirst({
+      where: {
+        userId: Number(userId),
+        communityPostId: Number(postId),
+      },
+    });
+    if (alreadyRequested) {
+      throw createError(400, "You already have join requested");
+    }
+
+    const insertJoinRequest = await prisma.joinRequest.create({
+      data: {
+        message: message,
+        communityPost: {
+          connect: {
+            id: Number(postId),
+          },
+        },
+        user: {
+          connect: {
+            id: Number(userId),
+          },
+        },
+      },
+    });
+    return insertJoinRequest;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
