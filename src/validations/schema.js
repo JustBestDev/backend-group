@@ -92,6 +92,25 @@ export const createPropertySchema = z
   })
   .strict();
 
+export const createPropertyAddressSchema = z
+  .object({
+    province: z.string().trim().min(1, "province is required"),
+    district: z.string().trim().nullable().optional(),
+    subDistrict: z.string().trim().nullable().optional(),
+    postcode: z.string().trim().nullable().optional(),
+    road: z.string().trim().nullable().optional(),
+    building: z.string().trim().nullable().optional(),
+    latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+    longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
+  })
+  .strict();
+
+export const updatePropertyAddressSchema = createPropertyAddressSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one address field is required",
+  });
+
 export const ownerApplicationSchema = z
   .object({
     documentUrl: z

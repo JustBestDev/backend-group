@@ -1,6 +1,109 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function updatePropertyAddressService(propertyId, ownerId, body) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      select: {
+        ownerId: true,
+        address: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    if (property.ownerId !== Number(ownerId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+
+    if (!property.address) {
+      throw createError(404, "Property address not found");
+    }
+
+    return await prisma.propertyAddress.update({
+      where: {
+        propertyId: parsedPropertyId,
+      },
+      data: body,
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function createPropertyAddressService(propertyId, ownerId, body) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      select: {
+        ownerId: true,
+        address: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    if (property.ownerId !== Number(ownerId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+
+    if (property.address) {
+      throw createError(409, "Property address already exists");
+    }
+
+    return await prisma.propertyAddress.create({
+      data: {
+        propertyId: parsedPropertyId,
+        province: body.province,
+        district: body.district,
+        subDistrict: body.subDistrict,
+        postcode: body.postcode,
+        road: body.road,
+        building: body.building,
+        latitude: body.latitude,
+        longitude: body.longitude,
+      },
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function createPropertyService(ownerId, body) {
   try {
     return await prisma.property.create({
