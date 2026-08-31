@@ -14,8 +14,18 @@ import adminRoute from "./routes/admin.route.js";
 import { partNotFound } from "./middlewares/pathNotFound.middleware.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
+import cors from "cors";
+
 
 const app = express();
+
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
