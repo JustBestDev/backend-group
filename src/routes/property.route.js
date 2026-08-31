@@ -4,6 +4,7 @@ import {
   createPropertyImages,
   createProperty,
   createRoomById,
+  deletePropertyImage,
   deleteProperty,
   getMyProperties,
   getProperties,
@@ -30,6 +31,12 @@ propertyRoute.post("/:propertyId/address", authenticate, allowRoles("OWNER"), cr
 propertyRoute.patch("/:propertyId/address", authenticate, allowRoles("OWNER"), updatePropertyAddress);
 
 propertyRoute.post("/:propertyId/images", authenticate, allowRoles("OWNER"), uploadPropertyImages, createPropertyImages);
+propertyRoute.delete(
+  "/:propertyId/images/:imageId",
+  authenticate,
+  allowRoles("OWNER"),
+  deletePropertyImage
+);
 
 
 propertyRoute.get("/:propertyId/rooms", getPropertyRooms);

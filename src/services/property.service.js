@@ -2,8 +2,87 @@ import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 import {
   deleteCloudinaryImages,
+  deleteImageFromCloudinary,
   uploadImagesToCloudinary,
 } from "../utils/uploadCloud.js";
+
+export async function deletePropertyImageService(propertyId, imageId, ownerId) {
+  const parsedPropertyId = Number(propertyId);
+  const parsedImageId = Number(imageId);
+
+  if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+    throw createError(400, "Invalid property ID");
+  }
+
+  if (!Number.isInteger(parsedImageId) || parsedImageId < 1) {
+    throw createError(400, "Invalid image ID");
+  }
+
+  const property = await prisma.property.findUnique({
+    where: {
+      id: parsedPropertyId,
+    },
+    select: {
+      ownerId: true,
+    },
+  });
+
+  if (!property) {
+    throw createError(404, "Property not found");
+  }
+
+  if (property.ownerId !== Number(ownerId)) {
+    throw createError(403, "You are not the owner of this property");
+  }
+
+  const image = await prisma.propertyImage.findFirst({
+    where: {
+      id: parsedImageId,
+      propertyId: parsedPropertyId,
+    },
+  });
+
+  if (!image) {
+    throw createError(404, "Property image not found");
+  }
+
+  await deleteImageFromCloudinary(image.imageUrl);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.propertyImage.delete({
+      where: {
+        id: parsedImageId,
+      },
+    });
+
+    if (image.isCover) {
+      const nextCover = await tx.propertyImage.findFirst({
+        where: {
+          propertyId: parsedPropertyId,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+
+      if (nextCover) {
+        await tx.propertyImage.update({
+          where: {
+            id: nextCover.id,
+          },
+          data: {
+            isCover: true,
+          },
+        });
+      }
+    }
+  });
+
+  return {
+    id: image.id,
+    imageUrl: image.imageUrl,
+  };
+}
 
 export async function createPropertyImagesService(propertyId, ownerId, files) {
   const parsedPropertyId = Number(propertyId);

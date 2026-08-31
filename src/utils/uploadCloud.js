@@ -97,3 +97,61 @@ export async function deleteCloudinaryImages(publicIds) {
     publicIds.map((publicId) => cloudinary.uploader.destroy(publicId))
   );
 }
+
+export function getPublicIdFromCloudinaryUrl(imageUrl) {
+  try {
+    const url = new URL(imageUrl);
+    const uploadMarker = "/image/upload/";
+    const uploadIndex = url.pathname.indexOf(uploadMarker);
+
+    if (uploadIndex === -1) {
+      throw new Error("Invalid Cloudinary image URL");
+    }
+
+    const pathAfterUpload = url.pathname.slice(uploadIndex + uploadMarker.length);
+    const pathParts = pathAfterUpload.split("/");
+
+    if (/^v\d+$/.test(pathParts[0])) {
+      pathParts.shift();
+    }
+
+    const publicIdWithExtension = decodeURIComponent(pathParts.join("/"));
+    const lastDotIndex = publicIdWithExtension.lastIndexOf(".");
+
+    return lastDotIndex > -1
+      ? publicIdWithExtension.slice(0, lastDotIndex)
+      : publicIdWithExtension;
+  } catch (error) {
+    throw createError(500, "Invalid Cloudinary URL stored in database");
+  }
+}
+
+export async function deleteImageFromCloudinary(imageUrl) {
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    throw createError(500, "Cloudinary environment variables are not configured");
+  }
+
+  const publicId = getPublicIdFromCloudinaryUrl(imageUrl);
+
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+      invalidate: true,
+    });
+
+    if (!["ok", "not found"].includes(result.result)) {
+      throw new Error(`Cloudinary delete returned: ${result.result}`);
+    }
+
+    return result;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(502, `Cloudinary delete failed: ${error.message}`);
+  }
+}

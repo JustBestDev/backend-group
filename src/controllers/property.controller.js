@@ -3,6 +3,7 @@ import {
   createPropertyImagesService,
   createPropertyService,
   createRoomPropertyById,
+  deletePropertyImageService,
   deletePropertyService,
   getMyPropertiesService,
   getPropertiesService,
@@ -21,6 +22,24 @@ import {
   updatePropertyAddressSchema,
   updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function deletePropertyImage(req, res, next) {
+  try {
+    const deletedImage = await deletePropertyImageService(
+      req.params.propertyId,
+      req.params.imageId,
+      req.user.id
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property image deleted successfully",
+      data: deletedImage,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function createPropertyImages(req, res, next) {
   try {
