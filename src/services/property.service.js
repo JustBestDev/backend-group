@@ -1,6 +1,51 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function deletePropertyService(propertyId, ownerId) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      select: {
+        id: true,
+        ownerId: true,
+        title: true,
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    if (property.ownerId !== Number(ownerId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+
+    await prisma.property.delete({
+      where: {
+        id: parsedPropertyId,
+      },
+    });
+
+    return {
+      id: property.id,
+      title: property.title,
+    };
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function getMyPropertiesService(ownerId) {
   try {
     return await prisma.property.findMany({

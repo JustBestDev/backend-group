@@ -2,6 +2,7 @@ import {
   createPropertyAddressService,
   createPropertyService,
   createRoomPropertyById,
+  deletePropertyService,
   getMyPropertiesService,
   getPropertyByIdService,
   getRoomPropertyById,
@@ -17,6 +18,23 @@ import {
   updatePropertyAddressSchema,
   updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function deleteProperty(req, res, next) {
+  try {
+    const deletedProperty = await deletePropertyService(
+      req.params.propertyId,
+      req.user.id
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property deleted successfully",
+      data: deletedProperty,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function getMyProperties(req, res, next) {
   try {
