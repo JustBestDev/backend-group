@@ -1,5 +1,89 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
+import {
+  deleteCloudinaryImages,
+  uploadImagesToCloudinary,
+} from "../utils/uploadCloud.js";
+
+export async function createPropertyImagesService(propertyId, ownerId, files) {
+  const parsedPropertyId = Number(propertyId);
+
+  if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+    throw createError(400, "Invalid property ID");
+  }
+
+  if (!files?.length) {
+    throw createError(400, "At least one image is required");
+  }
+
+  const property = await prisma.property.findUnique({
+    where: {
+      id: parsedPropertyId,
+    },
+    select: {
+      ownerId: true,
+      _count: {
+        select: {
+          images: true,
+        },
+      },
+    },
+  });
+
+  if (!property) {
+    throw createError(404, "Property not found");
+  }
+
+  if (property.ownerId !== Number(ownerId)) {
+    throw createError(403, "You are not the owner of this property");
+  }
+
+  if (property._count.images + files.length > 10) {
+    throw createError(
+      400,
+      `A property can have no more than 10 images; ${property._count.images} already exist`
+    );
+  }
+
+  const cloudImages = await uploadImagesToCloudinary(files, parsedPropertyId);
+
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const currentImageCount = await tx.propertyImage.count({
+          where: {
+            propertyId: parsedPropertyId,
+          },
+        });
+
+        if (currentImageCount + cloudImages.length > 10) {
+          throw createError(409, "The property image limit was reached during upload");
+        }
+
+        const createdImages = [];
+        for (let index = 0; index < cloudImages.length; index += 1) {
+          const image = await tx.propertyImage.create({
+            data: {
+              propertyId: parsedPropertyId,
+              imageUrl: cloudImages[index].imageUrl,
+              isCover: currentImageCount === 0 && index === 0,
+            },
+          });
+          createdImages.push(image);
+        }
+
+        return createdImages;
+      },
+      { isolationLevel: "Serializable" }
+    );
+  } catch (error) {
+    await deleteCloudinaryImages(cloudImages.map((image) => image.publicId));
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
 
 export async function getPropertiesService(query) {
   try {

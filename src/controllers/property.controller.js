@@ -1,5 +1,6 @@
 import {
   createPropertyAddressService,
+  createPropertyImagesService,
   createPropertyService,
   createRoomPropertyById,
   deletePropertyService,
@@ -20,6 +21,24 @@ import {
   updatePropertyAddressSchema,
   updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function createPropertyImages(req, res, next) {
+  try {
+    const images = await createPropertyImagesService(
+      req.params.propertyId,
+      req.user.id,
+      req.files
+    );
+
+    return res.status(201).json({
+      status: "success",
+      message: "Property images uploaded successfully",
+      data: images,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function getProperties(req, res, next) {
   try {

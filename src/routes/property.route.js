@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createPropertyAddress,
+  createPropertyImages,
   createProperty,
   createRoomById,
   deleteProperty,
@@ -14,6 +15,7 @@ import {
 } from "../controllers/property.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
+import { uploadPropertyImages } from "../utils/uploadCloud.js";
 const propertyRoute = express();
 
 propertyRoute.get("/", getProperties);
@@ -26,6 +28,8 @@ propertyRoute.patch("/:propertyId/status", authenticate, allowRoles("OWNER"), up
 
 propertyRoute.post("/:propertyId/address", authenticate, allowRoles("OWNER"), createPropertyAddress);
 propertyRoute.patch("/:propertyId/address", authenticate, allowRoles("OWNER"), updatePropertyAddress);
+
+propertyRoute.post("/:propertyId/images", authenticate, allowRoles("OWNER"), uploadPropertyImages, createPropertyImages);
 
 
 propertyRoute.get("/:propertyId/rooms", getPropertyRooms);
