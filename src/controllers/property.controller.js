@@ -3,33 +3,17 @@ import {
   createPropertyService,
   createRoomPropertyById,
   getRoomPropertyById,
+  updatePropertyService,
   updatePropertyAddressService,
 } from "../services/property.service.js";
 import {
   createPropertyAddressSchema,
   createPropertySchema,
   registerRoomSchema,
+  updatePropertySchema,
   updatePropertyAddressSchema,
 } from "../validations/schema.js";
 
-export async function updatePropertyAddress(req, res, next) {
-  try {
-    const body = updatePropertyAddressSchema.parse(req.body);
-    const address = await updatePropertyAddressService(
-      req.params.propertyId,
-      req.user.id,
-      body
-    );
-
-    return res.status(200).json({
-      status: "success",
-      message: "Property address updated successfully",
-      data: address,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
 
 export async function createPropertyAddress(req, res, next) {
   try {
@@ -50,6 +34,26 @@ export async function createPropertyAddress(req, res, next) {
   }
 }
 
+export async function updatePropertyAddress(req, res, next) {
+
+  try {
+    const body = updatePropertyAddressSchema.parse(req.body);
+    const address = await updatePropertyAddressService(
+      req.params.propertyId,
+      req.user.id,
+      body
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property address updated successfully",
+      data: address,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function createProperty(req, res, next) {
   // console.log('req', req.body)
   try {
@@ -59,6 +63,25 @@ export async function createProperty(req, res, next) {
     return res.status(201).json({
       status: "success",
       message: "Property created successfully",
+      data: property,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateProperty(req, res, next) {
+  try {
+    const body = updatePropertySchema.parse(req.body);
+    const property = await updatePropertyService(
+      req.params.propertyId,
+      req.user.id,
+      body
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property updated successfully",
       data: property,
     });
   } catch (error) {

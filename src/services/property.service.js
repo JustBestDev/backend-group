@@ -1,6 +1,54 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function updatePropertyService(propertyId, ownerId, body) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      select: {
+        ownerId: true,
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    if (property.ownerId !== Number(ownerId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+
+    return await prisma.property.update({
+      where: {
+        id: parsedPropertyId,
+      },
+      data: {
+        ...body,
+        publishStatus: "PENDING",
+        rejectReason: null,
+      },
+      include: {
+        address: true,
+        images: true,
+        rooms: true,
+      },
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function updatePropertyAddressService(propertyId, ownerId, body) {
   try {
     const parsedPropertyId = Number(propertyId);

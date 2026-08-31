@@ -92,6 +92,12 @@ export const createPropertySchema = z
   })
   .strict();
 
+export const updatePropertySchema = createPropertySchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one property field is required",
+  });
+
 export const createPropertyAddressSchema = z
   .object({
     province: z.string().trim().min(1, "province is required"),
