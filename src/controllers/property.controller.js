@@ -2,9 +2,12 @@ import {
   createPropertyAddressService,
   createPropertyService,
   createRoomPropertyById,
+  getMyPropertiesService,
+  getPropertyByIdService,
   getRoomPropertyById,
   updatePropertyService,
   updatePropertyAddressService,
+  updatePropertyStatusService,
 } from "../services/property.service.js";
 import {
   createPropertyAddressSchema,
@@ -12,7 +15,41 @@ import {
   registerRoomSchema,
   updatePropertySchema,
   updatePropertyAddressSchema,
+  updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function getMyProperties(req, res, next) {
+  try {
+    const properties = await getMyPropertiesService(req.user.id);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Owner properties retrieved successfully",
+      data: properties,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePropertyStatus(req, res, next) {
+  try {
+    const body = updatePropertyStatusSchema.parse(req.body);
+    const property = await updatePropertyStatusService(
+      req.params.propertyId,
+      req.user.id,
+      body.propertyStatus
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property status updated successfully",
+      data: property,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 
 export async function createPropertyAddress(req, res, next) {
@@ -90,6 +127,20 @@ export async function updateProperty(req, res, next) {
 }
 
 export async function getPropertyById(req, res, next) {
+  try {
+    const property = await getPropertyByIdService(req.params.propertyId);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Property retrieved successfully",
+      data: property,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPropertyRooms(req, res, next) {
   try {
     const property = await getRoomPropertyById(req.params.propertyId);
     return res.status(200).json(property);

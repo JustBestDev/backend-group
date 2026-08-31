@@ -98,6 +98,12 @@ export const updatePropertySchema = createPropertySchema
     message: "At least one property field is required",
   });
 
+export const updatePropertyStatusSchema = z
+  .object({
+    propertyStatus: z.enum(["AVAILABLE", "RENTED", "CLOSED"]),
+  })
+  .strict();
+
 export const createPropertyAddressSchema = z
   .object({
     province: z.string().trim().min(1, "province is required"),

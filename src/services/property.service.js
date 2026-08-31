@@ -1,6 +1,126 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function getMyPropertiesService(ownerId) {
+  try {
+    return await prisma.property.findMany({
+      where: {
+        ownerId: Number(ownerId),
+      },
+      include: {
+        address: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        rooms: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function getPropertyByIdService(propertyId) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            profile: true,
+          },
+        },
+        address: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        rooms: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    return property;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function updatePropertyStatusService(propertyId, ownerId, propertyStatus) {
+  try {
+    const parsedPropertyId = Number(propertyId);
+
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
+    }
+
+    const property = await prisma.property.findUnique({
+      where: {
+        id: parsedPropertyId,
+      },
+      select: {
+        ownerId: true,
+      },
+    });
+
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+
+    if (property.ownerId !== Number(ownerId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+
+    return await prisma.property.update({
+      where: {
+        id: parsedPropertyId,
+      },
+      data: {
+        propertyStatus,
+      },
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function updatePropertyService(propertyId, ownerId, body) {
   try {
     const parsedPropertyId = Number(propertyId);
