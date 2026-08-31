@@ -21,15 +21,27 @@ export const loginSchema = z.object({
   password: z.string().min(1, "password is required"),
 });
 
-export const ownerApplicationSchema = z
+export const updateProfileSchema = z
   .object({
-    documentUrl: z
-      .string()
-      .trim()
-      .url("documentUrl must be a valid URL")
+    firstName: z.string().nullable().optional(),
+    lastName: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    profileImageUrl: z.string().nullable().optional(),
+    bio: z.string().nullable().optional(),
+    gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
+    birthdate: z
+      .union([
+        z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`)),
+        z.null(),
+      ])
       .optional(),
+    occupation: z.string().nullable().optional(),
+    currentAddress: z.string().nullable().optional(),
   })
-  .strict();
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one profile field is required",
+  });
 
 export const communityPostSchema = z.object({
   propertyId: z.number().min(1, "propertyId must be at least 1"),
