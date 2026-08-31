@@ -168,6 +168,7 @@ model Property {
   rejectReason   String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -178,6 +179,8 @@ model Property {
   communityPosts CommunityPost[]
   conversations  Conversation[]
   rentals        Rental[]
+
+  @@index([deletedAt, publishStatus, createdAt])
 }
 
 model PropertyAddress {
@@ -212,13 +215,16 @@ model Room {
 }
 
 model PropertyImage {
-  id         Int      @id @default(autoincrement())
-  propertyId Int
-  imageUrl   String
-  isCover    Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id                 Int      @id @default(autoincrement())
+  propertyId         Int
+  imageUrl           String
+  cloudinaryPublicId String?
+  isCover            Boolean  @default(false)
+  createdAt          DateTime @default(now())
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, createdAt])
 }
 
 model CommunityPost {

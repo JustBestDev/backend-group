@@ -63,11 +63,11 @@ export const communityPostSchema = z.object({
 
 export const registerRoomSchema = z.object({
   roomName: z.string().min(1, "roomName is required").trim(),
-  description: z.string().min(1, "description is required").trim(),
-  monthlyRent: z.number().optional(),
-  status: z.any().optional(),
-  capacity: z.number().optional(),
-});
+  description: z.string().min(1, "description is required").trim().optional(),
+  monthlyRent: z.coerce.number().nonnegative(),
+  status: z.enum(["AVAILABLE", "RESERVED", "RENTED"]).optional(),
+  capacity: z.coerce.number().int().positive().optional(),
+}).strict();
 
 export const createPropertySchema = z
   .object({

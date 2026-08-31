@@ -113,9 +113,10 @@ export async function getCommunityMembersService(postId) {
 export async function updateCommunityPostService(postData, creatorId, postId) {
   try {
     // เช็ค property มีอยู่หรือไม่
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: Number(postData.propertyId),
+        deletedAt: null,
       },
     });
     if (!property) {
@@ -154,9 +155,10 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
 export async function createCommunityPostService(postData, creatorId) {
   try {
     // เช็ค property มีอยู่หรือไม่
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: Number(postData.propertyId),
+        deletedAt: null,
       },
     });
 

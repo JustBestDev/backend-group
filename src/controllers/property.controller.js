@@ -202,7 +202,10 @@ export async function updateProperty(req, res, next) {
 
 export async function getPropertyById(req, res, next) {
   try {
-    const property = await getPropertyByIdService(req.params.propertyId);
+    const property = await getPropertyByIdService(
+      req.params.propertyId,
+      req.user?.id
+    );
 
     return res.status(200).json({
       status: "success",

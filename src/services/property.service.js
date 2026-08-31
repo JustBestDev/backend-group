@@ -18,9 +18,10 @@ export async function deletePropertyImageService(propertyId, imageId, ownerId) {
     throw createError(400, "Invalid image ID");
   }
 
-  const property = await prisma.property.findUnique({
+  const property = await prisma.property.findFirst({
     where: {
       id: parsedPropertyId,
+      deletedAt: null,
     },
     select: {
       ownerId: true,
@@ -46,7 +47,7 @@ export async function deletePropertyImageService(propertyId, imageId, ownerId) {
     throw createError(404, "Property image not found");
   }
 
-  await deleteImageFromCloudinary(image.imageUrl);
+  await deleteImageFromCloudinary(image.imageUrl, image.cloudinaryPublicId);
 
   await prisma.$transaction(async (tx) => {
     await tx.propertyImage.delete({
@@ -76,6 +77,11 @@ export async function deletePropertyImageService(propertyId, imageId, ownerId) {
         });
       }
     }
+
+    await tx.property.update({
+      where: { id: parsedPropertyId },
+      data: { publishStatus: "PENDING", rejectReason: null },
+    });
   });
 
   return {
@@ -95,9 +101,10 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
     throw createError(400, "At least one image is required");
   }
 
-  const property = await prisma.property.findUnique({
+  const property = await prisma.property.findFirst({
     where: {
       id: parsedPropertyId,
+      deletedAt: null,
     },
     select: {
       ownerId: true,
@@ -145,11 +152,17 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
             data: {
               propertyId: parsedPropertyId,
               imageUrl: cloudImages[index].imageUrl,
+              cloudinaryPublicId: cloudImages[index].publicId,
               isCover: currentImageCount === 0 && index === 0,
             },
           });
           createdImages.push(image);
         }
+
+        await tx.property.update({
+          where: { id: parsedPropertyId },
+          data: { publishStatus: "PENDING", rejectReason: null },
+        });
 
         return createdImages;
       },
@@ -168,6 +181,7 @@ export async function getPropertiesService(query) {
   try {
     const where = {
       publishStatus: "APPROVED",
+      deletedAt: null,
       ...(query.q ? { OR: [{ title: { contains: query.q } }, { description: { contains: query.q } }] } : {}),
       ...(query.propertyType ? { propertyType: query.propertyType } : {}),
       ...(query.rentType ? { rentType: query.rentType } : {}),
@@ -196,6 +210,7 @@ export async function getPropertiesService(query) {
           },
           address: true,
           images: {
+            select: { id: true, imageUrl: true, isCover: true, createdAt: true },
             orderBy: {
               createdAt: "asc",
             },
@@ -235,9 +250,10 @@ export async function deletePropertyService(propertyId, ownerId) {
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -254,9 +270,13 @@ export async function deletePropertyService(propertyId, ownerId) {
       throw createError(403, "You are not the owner of this property");
     }
 
-    await prisma.property.delete({
+    await prisma.property.update({
       where: {
         id: parsedPropertyId,
+      },
+      data: {
+        deletedAt: new Date(),
+        propertyStatus: "CLOSED",
       },
     });
 
@@ -277,10 +297,12 @@ export async function getMyPropertiesService(ownerId) {
     return await prisma.property.findMany({
       where: {
         ownerId: Number(ownerId),
+        deletedAt: null,
       },
       include: {
         address: true,
         images: {
+          select: { id: true, imageUrl: true, isCover: true, createdAt: true },
           orderBy: {
             createdAt: "asc",
           },
@@ -303,7 +325,7 @@ export async function getMyPropertiesService(ownerId) {
   }
 }
 
-export async function getPropertyByIdService(propertyId) {
+export async function getPropertyByIdService(propertyId, viewerId) {
   try {
     const parsedPropertyId = Number(propertyId);
 
@@ -311,21 +333,28 @@ export async function getPropertyByIdService(propertyId) {
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       include: {
         owner: {
           select: {
             id: true,
             username: true,
-            email: true,
-            profile: true,
+            profile: {
+              select: {
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+              },
+            },
           },
         },
         address: true,
         images: {
+          select: { id: true, imageUrl: true, isCover: true, createdAt: true },
           orderBy: {
             createdAt: "asc",
           },
@@ -340,6 +369,20 @@ export async function getPropertyByIdService(propertyId) {
 
     if (!property) {
       throw createError(404, "Property not found");
+    }
+
+    if (property.publishStatus !== "APPROVED") {
+      if (!viewerId) throw createError(404, "Property not found");
+
+      const viewer = await prisma.user.findUnique({
+        where: { id: Number(viewerId) },
+        select: { id: true, role: true, status: true },
+      });
+      const canView =
+        viewer?.status === "ACTIVE" &&
+        (viewer.role === "ADMIN" || viewer.id === property.ownerId);
+
+      if (!canView) throw createError(404, "Property not found");
     }
 
     return property;
@@ -359,9 +402,10 @@ export async function updatePropertyStatusService(propertyId, ownerId, propertyS
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       select: {
         ownerId: true,
@@ -400,9 +444,10 @@ export async function updatePropertyService(propertyId, ownerId, body) {
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       select: {
         ownerId: true,
@@ -448,9 +493,10 @@ export async function updatePropertyAddressService(propertyId, ownerId, body) {
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       select: {
         ownerId: true,
@@ -474,11 +520,16 @@ export async function updatePropertyAddressService(propertyId, ownerId, body) {
       throw createError(404, "Property address not found");
     }
 
-    return await prisma.propertyAddress.update({
-      where: {
-        propertyId: parsedPropertyId,
-      },
-      data: body,
+    return await prisma.$transaction(async (tx) => {
+      const address = await tx.propertyAddress.update({
+        where: { propertyId: parsedPropertyId },
+        data: body,
+      });
+      await tx.property.update({
+        where: { id: parsedPropertyId },
+        data: { publishStatus: "PENDING", rejectReason: null },
+      });
+      return address;
     });
   } catch (error) {
     if (error.status) {
@@ -496,9 +547,10 @@ export async function createPropertyAddressService(propertyId, ownerId, body) {
       throw createError(400, "Invalid property ID");
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: parsedPropertyId,
+        deletedAt: null,
       },
       select: {
         ownerId: true,
@@ -522,18 +574,25 @@ export async function createPropertyAddressService(propertyId, ownerId, body) {
       throw createError(409, "Property address already exists");
     }
 
-    return await prisma.propertyAddress.create({
-      data: {
-        propertyId: parsedPropertyId,
-        province: body.province,
-        district: body.district,
-        subDistrict: body.subDistrict,
-        postcode: body.postcode,
-        road: body.road,
-        building: body.building,
-        latitude: body.latitude,
-        longitude: body.longitude,
-      },
+    return await prisma.$transaction(async (tx) => {
+      const address = await tx.propertyAddress.create({
+        data: {
+          propertyId: parsedPropertyId,
+          province: body.province,
+          district: body.district,
+          subDistrict: body.subDistrict,
+          postcode: body.postcode,
+          road: body.road,
+          building: body.building,
+          latitude: body.latitude,
+          longitude: body.longitude,
+        },
+      });
+      await tx.property.update({
+        where: { id: parsedPropertyId },
+        data: { publishStatus: "PENDING", rejectReason: null },
+      });
+      return address;
     });
   } catch (error) {
     if (error.status) {
@@ -577,9 +636,11 @@ export async function createPropertyService(ownerId, body) {
 
 export async function getRoomPropertyById(propertyId) {
   try {
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: Number(propertyId),
+        deletedAt: null,
+        publishStatus: "APPROVED",
       },
       include: {
         owner: {
@@ -621,9 +682,10 @@ export async function getRoomPropertyById(propertyId) {
 
 export async function createRoomPropertyById(propertyId, userId, body) {
   try {
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: Number(propertyId),
+        deletedAt: null,
       },
       include: {
         rooms: true,

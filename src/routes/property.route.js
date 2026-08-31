@@ -14,7 +14,7 @@ import {
   updatePropertyAddress,
   updatePropertyStatus,
 } from "../controllers/property.controller.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
+import { authenticate, optionalAuthenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
 import { uploadPropertyImages } from "../utils/uploadCloud.js";
 const propertyRoute = express();
@@ -22,7 +22,7 @@ const propertyRoute = express();
 propertyRoute.get("/", getProperties);
 propertyRoute.post("/", authenticate, allowRoles("OWNER"), createProperty);
 propertyRoute.get("/me", authenticate, allowRoles("OWNER"), getMyProperties);
-propertyRoute.get("/:propertyId", getPropertyById);
+propertyRoute.get("/:propertyId", optionalAuthenticate, getPropertyById);
 propertyRoute.patch("/:propertyId", authenticate, allowRoles("OWNER"), updateProperty);
 propertyRoute.delete("/:propertyId", authenticate, allowRoles("OWNER"), deleteProperty);
 propertyRoute.patch("/:propertyId/status", authenticate, allowRoles("OWNER"), updatePropertyStatus);
@@ -40,5 +40,10 @@ propertyRoute.delete(
 
 
 propertyRoute.get("/:propertyId/rooms", getPropertyRooms);
-propertyRoute.post("/:propertyId/rooms", authenticate, createRoomById);
+propertyRoute.post(
+  "/:propertyId/rooms",
+  authenticate,
+  allowRoles("OWNER"),
+  createRoomById
+);
 export default propertyRoute;

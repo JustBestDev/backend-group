@@ -93,9 +93,27 @@ export async function uploadImagesToCloudinary(files, propertyId) {
 }
 
 export async function deleteCloudinaryImages(publicIds) {
-  await Promise.allSettled(
-    publicIds.map((publicId) => cloudinary.uploader.destroy(publicId))
-  );
+  const failedPublicIds = [];
+
+  for (const publicId of publicIds) {
+    let deleted = false;
+    for (let attempt = 1; attempt <= 3 && !deleted; attempt += 1) {
+      try {
+        const result = await cloudinary.uploader.destroy(publicId, {
+          resource_type: "image",
+          invalidate: true,
+        });
+        deleted = ["ok", "not found"].includes(result.result);
+      } catch (error) {
+        if (attempt === 3) {
+          console.error("Cloudinary cleanup failed", { publicId, error });
+        }
+      }
+    }
+    if (!deleted) failedPublicIds.push(publicId);
+  }
+
+  return failedPublicIds;
 }
 
 export function getPublicIdFromCloudinaryUrl(imageUrl) {
@@ -126,7 +144,7 @@ export function getPublicIdFromCloudinaryUrl(imageUrl) {
   }
 }
 
-export async function deleteImageFromCloudinary(imageUrl) {
+export async function deleteImageFromCloudinary(imageUrl, storedPublicId) {
   if (
     !process.env.CLOUDINARY_CLOUD_NAME ||
     !process.env.CLOUDINARY_API_KEY ||
@@ -135,7 +153,7 @@ export async function deleteImageFromCloudinary(imageUrl) {
     throw createError(500, "Cloudinary environment variables are not configured");
   }
 
-  const publicId = getPublicIdFromCloudinaryUrl(imageUrl);
+  const publicId = storedPublicId || getPublicIdFromCloudinaryUrl(imageUrl);
 
   try {
     const result = await cloudinary.uploader.destroy(publicId, {
@@ -152,6 +170,6 @@ export async function deleteImageFromCloudinary(imageUrl) {
     if (error.status) {
       throw error;
     }
-    throw createError(502, `Cloudinary delete failed: ${error.message}`);
+    throw createError(502, "Cloudinary delete failed");
   }
 }
