@@ -1,6 +1,69 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function getPropertiesService(query) {
+  try {
+    const where = {
+      publishStatus: "APPROVED",
+      ...(query.q ? { OR: [{ title: { contains: query.q } }, { description: { contains: query.q } }] } : {}),
+      ...(query.propertyType ? { propertyType: query.propertyType } : {}),
+      ...(query.rentType ? { rentType: query.rentType } : {}),
+      ...(query.propertyStatus ? { propertyStatus: query.propertyStatus } : {}),
+      ...(query.province ? { address: { is: { province: { contains: query.province } } } } : {}),
+      ...(query.minRent !== undefined || query.maxRent !== undefined
+        ? {
+          monthlyRent: {
+            ...(query.minRent !== undefined ? { gte: query.minRent } : {}),
+            ...(query.maxRent !== undefined ? { lte: query.maxRent } : {}),
+          },
+        } : {}),
+    };
+
+    const skip = (query.page - 1) * query.limit;
+    const [properties, total] = await prisma.$transaction([
+      prisma.property.findMany({
+        where,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              profile: true,
+            },
+          },
+          address: true,
+          images: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: query.limit,
+      }),
+      prisma.property.count({ where }),
+    ]);
+
+    return {
+      properties,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function deletePropertyService(propertyId, ownerId) {
   try {
     const parsedPropertyId = Number(propertyId);

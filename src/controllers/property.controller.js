@@ -4,6 +4,7 @@ import {
   createRoomPropertyById,
   deletePropertyService,
   getMyPropertiesService,
+  getPropertiesService,
   getPropertyByIdService,
   getRoomPropertyById,
   updatePropertyService,
@@ -13,11 +14,28 @@ import {
 import {
   createPropertyAddressSchema,
   createPropertySchema,
+  getPropertiesQuerySchema,
   registerRoomSchema,
   updatePropertySchema,
   updatePropertyAddressSchema,
   updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function getProperties(req, res, next) {
+  try {
+    const query = getPropertiesQuerySchema.parse(req.query);
+    const result = await getPropertiesService(query);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Properties retrieved successfully",
+      data: result.properties,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function deleteProperty(req, res, next) {
   try {

@@ -5,6 +5,7 @@ import {
   createRoomById,
   deleteProperty,
   getMyProperties,
+  getProperties,
   getPropertyById,
   getPropertyRooms,
   updateProperty,
@@ -15,6 +16,7 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
 const propertyRoute = express();
 
+propertyRoute.get("/", getProperties);
 propertyRoute.post("/", authenticate, allowRoles("OWNER"), createProperty);
 propertyRoute.get("/me", authenticate, allowRoles("OWNER"), getMyProperties);
 propertyRoute.get("/:propertyId", getPropertyById);

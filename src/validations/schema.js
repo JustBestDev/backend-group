@@ -104,6 +104,32 @@ export const updatePropertyStatusSchema = z
   })
   .strict();
 
+export const getPropertiesQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).optional(),
+    province: z.string().trim().min(1).optional(),
+    propertyType: z
+      .enum(["HOUSE", "CONDO", "APARTMENT", "DORMITORY", "OTHER"])
+      .optional(),
+    rentType: z.enum(["INDIVIDUAL_ROOM", "WHOLE_UNIT"]).optional(),
+    propertyStatus: z.enum(["AVAILABLE", "RENTED", "CLOSED"]).optional(),
+    minRent: z.coerce.number().nonnegative().optional(),
+    maxRent: z.coerce.number().nonnegative().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.minRent === undefined ||
+      data.maxRent === undefined ||
+      data.minRent <= data.maxRent,
+    {
+      message: "minRent must be less than or equal to maxRent",
+      path: ["minRent"],
+    }
+  );
+
 export const createPropertyAddressSchema = z
   .object({
     province: z.string().trim().min(1, "province is required"),
