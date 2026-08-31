@@ -31,7 +31,6 @@ export const findUserById = async (id) => {
       role: true,
       status: true,
       createdAt: true,
-      updatedAt: true,
     },
   });
 };
@@ -46,6 +45,10 @@ export const createUser = async (
       username,
       email,
       password: hashedPassword,
+
+      profile: {
+        create: {},
+      },
     },
 
     select: {

@@ -27,6 +27,27 @@ export const updateUserStatusSchema = z
     status: z.enum(UserStatus),
   })
   .strict();
+export const updateProfileSchema = z
+  .object({
+    firstName: z.string().nullable().optional(),
+    lastName: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    profileImageUrl: z.string().nullable().optional(),
+    bio: z.string().nullable().optional(),
+    gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
+    birthdate: z
+      .union([
+        z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`)),
+        z.null(),
+      ])
+      .optional(),
+    occupation: z.string().nullable().optional(),
+    currentAddress: z.string().nullable().optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one profile field is required",
+  });
 
 export const communityPostSchema = z.object({
   propertyId: z.number().min(1, "propertyId must be at least 1"),
