@@ -8,9 +8,10 @@ export const findPropertyById = async (
   propertyId
 ) => {
   const property =
-    await prisma.property.findUnique({
+    await prisma.property.findFirst({
       where: {
         id: Number(propertyId),
+        deletedAt: null,
       },
 
       select: {

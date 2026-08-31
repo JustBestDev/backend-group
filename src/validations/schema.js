@@ -63,11 +63,91 @@ export const communityPostSchema = z.object({
 
 export const registerRoomSchema = z.object({
   roomName: z.string().min(1, "roomName is required").trim(),
-  description: z.string().min(1, "description is required").trim(),
-  monthlyRent: z.number().optional(),
-  status: z.any().optional(),
-  capacity: z.number().optional(),
-});
+  description: z.string().min(1, "description is required").trim().optional(),
+  monthlyRent: z.coerce.number().nonnegative(),
+  status: z.enum(["AVAILABLE", "RESERVED", "RENTED"]).optional(),
+  capacity: z.coerce.number().int().positive().optional(),
+}).strict();
+
+export const createPropertySchema = z
+  .object({
+    title: z.string().trim().min(1, "title is required"),
+    description: z.string().trim().min(1, "description is required"),
+    propertyType: z.enum([
+      "HOUSE",
+      "CONDO",
+      "APARTMENT",
+      "DORMITORY",
+      "OTHER",
+    ]),
+    rentType: z.enum(["INDIVIDUAL_ROOM", "WHOLE_UNIT"]),
+    monthlyRent: z.coerce.number().nonnegative(),
+    deposit: z.coerce.number().nonnegative().nullable().optional(),
+    availableDate: z
+      .union([z.iso.date(), z.iso.datetime()])
+      .transform((value) => new Date(value))
+      .nullable()
+      .optional(),
+    totalBedrooms: z.coerce.number().int().nonnegative().nullable().optional(),
+  })
+  .strict();
+
+export const updatePropertySchema = createPropertySchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one property field is required",
+  });
+
+export const updatePropertyStatusSchema = z
+  .object({
+    propertyStatus: z.enum(["AVAILABLE", "RENTED", "CLOSED"]),
+  })
+  .strict();
+
+export const getPropertiesQuerySchema = z
+  .object({
+    q: z.string().trim().min(1).optional(),
+    province: z.string().trim().min(1).optional(),
+    propertyType: z
+      .enum(["HOUSE", "CONDO", "APARTMENT", "DORMITORY", "OTHER"])
+      .optional(),
+    rentType: z.enum(["INDIVIDUAL_ROOM", "WHOLE_UNIT"]).optional(),
+    propertyStatus: z.enum(["AVAILABLE", "RENTED", "CLOSED"]).optional(),
+    minRent: z.coerce.number().nonnegative().optional(),
+    maxRent: z.coerce.number().nonnegative().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.minRent === undefined ||
+      data.maxRent === undefined ||
+      data.minRent <= data.maxRent,
+    {
+      message: "minRent must be less than or equal to maxRent",
+      path: ["minRent"],
+    }
+  );
+
+export const createPropertyAddressSchema = z
+  .object({
+    province: z.string().trim().min(1, "province is required"),
+    district: z.string().trim().nullable().optional(),
+    subDistrict: z.string().trim().nullable().optional(),
+    postcode: z.string().trim().nullable().optional(),
+    road: z.string().trim().nullable().optional(),
+    building: z.string().trim().nullable().optional(),
+    latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+    longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
+  })
+  .strict();
+
+export const updatePropertyAddressSchema = createPropertyAddressSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one address field is required",
+  });
 
 export const ownerApplicationSchema = z
   .object({

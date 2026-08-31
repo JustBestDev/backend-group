@@ -77,11 +77,12 @@ export const getAdminDashboard = async (req, res, next) => {
         },
       }),
 
-      prisma.property.count(),
+      prisma.property.count({ where: { deletedAt: null } }),
 
       prisma.property.count({
         where: {
           publishStatus: "PENDING",
+          deletedAt: null,
         },
       }),
 
@@ -393,11 +394,10 @@ export const getAdminProperties = async (req, res, next) => {
     }
 
     const properties = await prisma.property.findMany({
-      where: publishStatus
-        ? {
-            publishStatus,
-          }
-        : undefined,
+      where: {
+        deletedAt: null,
+        ...(publishStatus ? { publishStatus } : {}),
+      },
 
       include: {
         owner: {
@@ -463,9 +463,10 @@ export const getAdminPropertyById = async (req, res, next) => {
       return next(createError(400, "Invalid property ID"));
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: propertyId,
+        deletedAt: null,
       },
 
       include: {
@@ -554,9 +555,10 @@ export const reviewProperty = async (req, res, next) => {
       );
     }
 
-    const property = await prisma.property.findUnique({
+    const property = await prisma.property.findFirst({
       where: {
         id: propertyId,
+        deletedAt: null,
       },
       include: {
         owner: {

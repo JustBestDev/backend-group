@@ -1,7 +1,7 @@
 import z from "zod";
 
 export const errorHandler = (err, req, res, next) => {
-  console.log("err", err);
+  console.error("err", err);
 
   if (err instanceof z.ZodError) {
     return res.status(400).json({
@@ -10,8 +10,10 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  return res.status(err.status || 500).json({
+  const status = err.status || 500;
+
+  return res.status(status).json({
     status: "Error",
-    message: err.message || "Internal Server Error",
+    message: status >= 500 ? "Internal Server Error" : err.message,
   });
 };

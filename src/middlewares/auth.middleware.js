@@ -26,3 +26,18 @@ export const authenticate = (req, res, next) => {
     });  
   }
 };
+
+export const optionalAuthenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return next();
+  }
+
+  try {
+    req.user = jwt.verify(authHeader.split(" ")[1], process.env.JWT_SECRET_USER);
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
