@@ -68,3 +68,13 @@ export const registerRoomSchema = z.object({
   status: z.any().optional(),
   capacity: z.number().optional(),
 });
+
+export const ownerApplicationSchema = z
+  .object({
+    documentUrl: z
+      .string()
+      .trim()
+      .url("documentUrl must be a valid URL")
+      .optional(),
+  })
+  .strict();
