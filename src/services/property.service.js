@@ -1,6 +1,38 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 
+export async function createPropertyService(ownerId, body) {
+  try {
+    return await prisma.property.create({
+      data: {
+        ownerId: Number(ownerId),
+        title: body.title,
+        description: body.description,
+        propertyType: body.propertyType,
+        rentType: body.rentType,
+        monthlyRent: body.monthlyRent,
+        deposit: body.deposit,
+        availableDate: body.availableDate,
+        totalBedrooms: body.totalBedrooms,
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
 export async function getRoomPropertyById(propertyId) {
   try {
     const property = await prisma.property.findUnique({

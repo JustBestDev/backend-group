@@ -69,6 +69,29 @@ export const registerRoomSchema = z.object({
   capacity: z.number().optional(),
 });
 
+export const createPropertySchema = z
+  .object({
+    title: z.string().trim().min(1, "title is required"),
+    description: z.string().trim().min(1, "description is required"),
+    propertyType: z.enum([
+      "HOUSE",
+      "CONDO",
+      "APARTMENT",
+      "DORMITORY",
+      "OTHER",
+    ]),
+    rentType: z.enum(["INDIVIDUAL_ROOM", "WHOLE_UNIT"]),
+    monthlyRent: z.coerce.number().nonnegative(),
+    deposit: z.coerce.number().nonnegative().nullable().optional(),
+    availableDate: z
+      .union([z.iso.date(), z.iso.datetime()])
+      .transform((value) => new Date(value))
+      .nullable()
+      .optional(),
+    totalBedrooms: z.coerce.number().int().nonnegative().nullable().optional(),
+  })
+  .strict();
+
 export const ownerApplicationSchema = z
   .object({
     documentUrl: z

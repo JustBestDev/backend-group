@@ -1,8 +1,27 @@
 import {
+  createPropertyService,
   createRoomPropertyById,
   getRoomPropertyById,
 } from "../services/property.service.js";
-import { registerRoomSchema } from "../validations/schema.js";
+import {
+  createPropertySchema,
+  registerRoomSchema,
+} from "../validations/schema.js";
+
+export async function createProperty(req, res, next) {
+  try {
+    const body = createPropertySchema.parse(req.body);
+    const property = await createPropertyService(req.user.id, body);
+
+    return res.status(201).json({
+      status: "success",
+      message: "Property created successfully",
+      data: property,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function getPropertyById(req, res, next) {
   try {
