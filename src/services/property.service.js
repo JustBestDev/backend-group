@@ -6,6 +6,58 @@ import {
   uploadImagesToCloudinary,
 } from "../utils/uploadCloud.js";
 
+export async function checkPropertyImageCapacityService(
+  propertyId,
+  ownerId,
+  newImageCount
+) {
+  const parsedPropertyId = Number(propertyId);
+
+  if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+    throw createError(400, "Invalid property ID");
+  }
+
+  if (!Number.isInteger(newImageCount) || newImageCount < 1) {
+    throw createError(400, "At least one image is required");
+  }
+
+  const property = await prisma.property.findFirst({
+    where: {
+      id: parsedPropertyId,
+      deletedAt: null,
+    },
+    select: {
+      ownerId: true,
+      _count: {
+        select: { images: true },
+      },
+    },
+  });
+
+  if (!property) {
+    throw createError(404, "Property not found");
+  }
+
+  if (property.ownerId !== Number(ownerId)) {
+    throw createError(403, "You are not the owner of this property");
+  }
+
+  const remainingSlots = 10 - property._count.images;
+  if (newImageCount > remainingSlots) {
+    throw createError(
+      409,
+      remainingSlots === 0
+        ? "This property already has the maximum of 10 images"
+        : `Only ${remainingSlots} more image(s) can be added`
+    );
+  }
+
+  return {
+    currentImageCount: property._count.images,
+    remainingSlots,
+  };
+}
+
 export async function deletePropertyImageService(propertyId, imageId, ownerId) {
   const parsedPropertyId = Number(propertyId);
   const parsedImageId = Number(imageId);
@@ -126,7 +178,7 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
 
   if (property._count.images + files.length > 10) {
     throw createError(
-      400,
+      409,
       `A property can have no more than 10 images; ${property._count.images} already exist`
     );
   }
