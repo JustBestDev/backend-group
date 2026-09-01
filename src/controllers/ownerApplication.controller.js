@@ -4,15 +4,10 @@ import {
   createOwnerApplication,
   findCurrentUserOwnerApplication,
 } from "../services/ownerApplication.service.js";
-import { ownerApplicationSchema } from "../validations/schema.js";
 
 export const submitOwnerApplication = async (req, res, next) => {
   try {
-    const applicationData = ownerApplicationSchema.parse(req.body);
-    const application = await createOwnerApplication(
-      req.user.id,
-      applicationData
-    );
+    const application = await createOwnerApplication(req.user.id, req.files);
 
     return res.status(201).json({
       message: "Owner application submitted successfully",

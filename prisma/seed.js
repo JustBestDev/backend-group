@@ -122,10 +122,15 @@ async function main() {
   const pendingApplicant = users["owner.pending@test.local"];
   const rejectedApplicant = users["owner.rejected@test.local"];
 
-  await prisma.ownerApplication.createMany({ data: [
-    { userId: pendingApplicant.id, status: "PENDING", documentUrl: "https://example.com/team-test/pending-owner.pdf" },
-    { userId: owner.id, reviewedById: admin.id, status: "APPROVED", documentUrl: "https://example.com/team-test/approved-owner.pdf", reviewedAt: date("2026-08-15") },
-    { userId: rejectedApplicant.id, reviewedById: admin.id, status: "REJECTED", documentUrl: "https://example.com/team-test/rejected-owner.pdf", rejectReason: "Identity document is incomplete", reviewedAt: date("2026-08-16") },
+  const seededApplications = await Promise.all([
+    prisma.ownerApplication.create({ data: { userId: pendingApplicant.id, status: "PENDING" } }),
+    prisma.ownerApplication.create({ data: { userId: owner.id, reviewedById: admin.id, status: "APPROVED", reviewedAt: date("2026-08-15") } }),
+    prisma.ownerApplication.create({ data: { userId: rejectedApplicant.id, reviewedById: admin.id, status: "REJECTED", rejectReason: "Identity document is incomplete", reviewedAt: date("2026-08-16") } }),
+  ]);
+  await prisma.ownerApplicationDocument.createMany({ data: [
+    { ownerApplicationId: seededApplications[0].id, documentUrl: "https://example.invalid/private/owner-pending.pdf", cloudinaryPublicId: null },
+    { ownerApplicationId: seededApplications[1].id, documentUrl: "https://example.invalid/private/owner-approved.pdf", cloudinaryPublicId: null },
+    { ownerApplicationId: seededApplications[2].id, documentUrl: "https://example.invalid/private/owner-rejected.pdf", cloudinaryPublicId: null },
   ] });
 
   const propertyA = await prisma.property.create({ data: {

@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "test": "node --test"
   },
   "keywords": [],
   "type": "module",

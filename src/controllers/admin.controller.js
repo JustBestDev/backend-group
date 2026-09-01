@@ -6,6 +6,7 @@ import {
   findAdminUserById,
   updateUserStatus,
 } from "../services/admin.service.js";
+import { createOwnerDocumentSignedUrl } from "../utils/uploadCloudOwnerApplication.js";
 
 // ========================================
 // GET /api/admin/users
@@ -221,12 +222,28 @@ export const getOwnerApplicationById = async (req, res, next) => {
             email: true,
           },
         },
+        documents: {
+          select: {
+            id: true,
+            cloudinaryPublicId: true,
+            createdAt: true,
+          },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        },
       },
     });
 
     if (!application) {
       return next(createError(404, "Owner application not found"));
     }
+
+    application.documents = application.documents.map((document) => ({
+      id: document.id,
+      createdAt: document.createdAt,
+      signedUrl: document.cloudinaryPublicId
+        ? createOwnerDocumentSignedUrl(document.cloudinaryPublicId)
+        : null,
+    }));
 
     return res.status(200).json({
       message: "Owner application retrieved successfully",
