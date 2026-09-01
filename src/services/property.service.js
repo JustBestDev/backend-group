@@ -5,7 +5,7 @@ import {
   deleteImageFromCloudinary,
   MAX_PROPERTY_IMAGES,
   uploadImagesToCloudinary,
-} from "../utils/uploadCloudProrerty.js";
+} from "../utils/uploadCloudProperty.js";
 
 export async function checkPropertyImageCapacityService(
   propertyId,

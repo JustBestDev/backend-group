@@ -2,6 +2,7 @@ import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import createError from "http-errors";
+import { fileTypeFromBuffer } from "file-type";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -15,12 +16,6 @@ const upload = multer({
   limits: {
     files: 1,
     fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (req, file, callback) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return callback(createError(400, "Only image files are allowed"));
-    }
-    callback(null, true);
   },
 });
 
@@ -44,6 +39,35 @@ export function uploadRoomImage(req, res, next) {
 
     return next(error);
   });
+}
+
+export async function validateRoomImageType(req, res, next) {
+  try {
+    if (!req.file?.buffer) {
+      throw createError(400, "Room image is required");
+    }
+
+    const detectedType = await fileTypeFromBuffer(req.file.buffer);
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
+
+    if (!detectedType || !allowedMimeTypes.includes(detectedType.mime)) {
+      throw createError(
+        400,
+        "Only JPEG, PNG, WebP, and GIF images are allowed"
+      );
+    }
+
+    req.file.detectedMimeType = detectedType.mime;
+    req.file.detectedExtension = detectedType.ext;
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 export function uploadRoomImageToCloudinary(file, roomId) {
