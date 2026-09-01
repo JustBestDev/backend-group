@@ -3,6 +3,8 @@ import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import createError from "http-errors";
 
+export const MAX_PROPERTY_IMAGES = 5;
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -13,7 +15,7 @@ cloudinary.config({
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    files: 10,
+    files: MAX_PROPERTY_IMAGES,
     fileSize: 5 * 1024 * 1024,
   },
   fileFilter: (req, file, callback) => {
@@ -24,7 +26,7 @@ const upload = multer({
   },
 });
 
-const uploadMany = upload.array("images", 10);
+const uploadMany = upload.array("images", MAX_PROPERTY_IMAGES);
 
 export function uploadPropertyImages(req, res, next) {
   uploadMany(req, res, (error) => {
@@ -37,7 +39,12 @@ export function uploadPropertyImages(req, res, next) {
         return next(createError(400, "Each image must not exceed 5 MB"));
       }
       if (error.code === "LIMIT_FILE_COUNT" || error.code === "LIMIT_UNEXPECTED_FILE") {
-        return next(createError(400, "Upload no more than 10 images at a time"));
+        return next(
+          createError(
+            400,
+            `Upload no more than ${MAX_PROPERTY_IMAGES} images at a time`
+          )
+        );
       }
     }
 
@@ -88,9 +95,6 @@ export async function uploadImagesToCloudinary(files, propertyId) {
     await deleteCloudinaryImages(uploadedImages.map((image) => image.publicId));
     throw createError(502, `Cloudinary upload failed: ${failedUpload.reason.message}`);
   }
-
-  console.log('uploadedImages', uploadedImages)
-
   return uploadedImages;
 }
 

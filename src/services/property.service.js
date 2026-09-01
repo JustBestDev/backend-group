@@ -3,8 +3,9 @@ import createError from "http-errors";
 import {
   deleteCloudinaryImages,
   deleteImageFromCloudinary,
+  MAX_PROPERTY_IMAGES,
   uploadImagesToCloudinary,
-} from "../utils/uploadCloud.js";
+} from "../utils/uploadCloudProrerty.js";
 
 export async function checkPropertyImageCapacityService(
   propertyId,
@@ -42,12 +43,12 @@ export async function checkPropertyImageCapacityService(
     throw createError(403, "You are not the owner of this property");
   }
 
-  const remainingSlots = 10 - property._count.images;
+  const remainingSlots = MAX_PROPERTY_IMAGES - property._count.images;
   if (newImageCount > remainingSlots) {
     throw createError(
       409,
       remainingSlots === 0
-        ? "This property already has the maximum of 10 images"
+        ? `This property already has the maximum of ${MAX_PROPERTY_IMAGES} images`
         : `Only ${remainingSlots} more image(s) can be added`
     );
   }
@@ -176,10 +177,10 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
     throw createError(403, "You are not the owner of this property");
   }
 
-  if (property._count.images + files.length > 10) {
+  if (property._count.images + files.length > MAX_PROPERTY_IMAGES) {
     throw createError(
       409,
-      `A property can have no more than 10 images; ${property._count.images} already exist`
+      `A property can have no more than ${MAX_PROPERTY_IMAGES} images; ${property._count.images} already exist`
     );
   }
 
@@ -194,7 +195,7 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
           },
         });
 
-        if (currentImageCount + cloudImages.length > 10) {
+        if (currentImageCount + cloudImages.length > MAX_PROPERTY_IMAGES) {
           throw createError(409, "The property image limit was reached during upload");
         }
 
