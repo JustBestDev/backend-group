@@ -17,7 +17,10 @@ import {
 } from "../controllers/property.controller.js";
 import { authenticate, optionalAuthenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
-import { uploadPropertyImages } from "../utils/uploadCloudProrerty.js";
+import {
+  uploadPropertyImages,
+  validatePropertyImageTypes,
+} from "../utils/uploadCloudProperty.js";
 const propertyRoute = express();
 
 propertyRoute.get("/", getProperties);
@@ -36,6 +39,7 @@ propertyRoute.post(
   authenticate,
   allowRoles("OWNER"),
   uploadPropertyImages,
+  validatePropertyImageTypes,
   checkPropertyImageCapacity,
   createPropertyImages
 );

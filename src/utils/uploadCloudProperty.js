@@ -2,6 +2,7 @@ import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
 import multer from "multer";
 import createError from "http-errors";
+import { fileTypeFromBuffer } from "file-type";
 
 export const MAX_PROPERTY_IMAGES = 5;
 
@@ -17,12 +18,6 @@ const upload = multer({
   limits: {
     files: MAX_PROPERTY_IMAGES,
     fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (req, file, callback) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return callback(createError(400, "Only image files are allowed"));
-    }
-    callback(null, true);
   },
 });
 
@@ -50,6 +45,39 @@ export function uploadPropertyImages(req, res, next) {
 
     return next(error);
   });
+}
+
+export async function validatePropertyImageTypes(req, res, next) {
+  try {
+    if (!req.files?.length) {
+      throw createError(400, "At least one property image is required");
+    }
+
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
+
+    for (const file of req.files) {
+      const detectedType = await fileTypeFromBuffer(file.buffer);
+
+      if (!detectedType || !allowedMimeTypes.includes(detectedType.mime)) {
+        throw createError(
+          400,
+          `${file.originalname}: only JPEG, PNG, WebP, and GIF images are allowed`
+        );
+      }
+
+      file.detectedMimeType = detectedType.mime;
+      file.detectedExtension = detectedType.ext;
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 function uploadImageBuffer(file, propertyId) {
