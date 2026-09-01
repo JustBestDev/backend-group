@@ -1,0 +1,630 @@
+@baseUrl = http://localhost:8899/api
+@healthUrl = http://localhost:8899/test
+
+@userEmail = user@example.com
+@userPassword = password123
+@userBEmail = user-b@example.com
+@userBPassword = password123
+@ownerEmail = owner@example.com
+@ownerPassword = password123
+@adminEmail = admin@example.com
+@adminPassword = password123
+
+@userToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwidXNlcm5hbWUiOiJyZXN0X2NsaWVudF91c2VyIiwicm9sZSI6IlVTRVIiLCJzdGF0dXMiOiJBQ1RJVkUiLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTAxVDAzOjIzOjQ1Ljk3OVoiLCJpYXQiOjE3ODgyMzMwNzQsImV4cCI6MTc4ODMxOTQ3NH0._Q_9dHWi63cYNdH88DVeiZsKQ9XLrRNDAWOq1NowFPg
+@userBToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJ1c2VyLWJAZXhhbXBsZS5jb20iLCJ1c2VybmFtZSI6InJlc3RfY2xpZW50X3VzZXItYiIsInJvbGUiOiJVU0VSIiwic3RhdHVzIjoiQUNUSVZFIiwiY3JlYXRlZEF0IjoiMjAyNi0wOS0wMVQwMzoyMzo1Ny42NThaIiwiaWF0IjoxNzg4MjMzMTQ4LCJleHAiOjE3ODgzMTk1NDh9.TOu-_vDylMXiUZBFt9FEhyB0UAT0jzOZDM6aNiwNgUk
+@ownerToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZW1haWwiOiJvd25lckBleGFtcGxlLmNvbSIsInVzZXJuYW1lIjoicmVzdF9jbGllbnRfb3duZXIiLCJyb2xlIjoiT1dORVIiLCJzdGF0dXMiOiJBQ1RJVkUiLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTAxVDAzOjI0OjA3LjU0OFoiLCJpYXQiOjE3ODgyMzMxNjIsImV4cCI6MTc4ODMxOTU2Mn0.K8ebyFdX5SKldw-NKybIZ9czXp7d_h6Ed5Ysh4IuaQc
+@adminToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInVzZXJuYW1lIjoicmVzdF9jbGllbnRfYWRtaW4iLCJyb2xlIjoiQURNSU4iLCJzdGF0dXMiOiJBQ1RJVkUiLCJjcmVhdGVkQXQiOiIyMDI2LTA5LTAxVDAzOjI0OjIxLjk4MVoiLCJpYXQiOjE3ODgyMzMxNzksImV4cCI6MTc4ODMxOTU3OX0.F0Y6keJuzVbFwDvi_uSbw86m7VlD9lbZ_iNjOPkY4hw
+@userId = 1
+@userBId = 2
+@ownerId = 3
+@propertyId = 1
+@roomId = 1
+@propertyImageId = 1
+@communityPostId = 1
+@userACommunityPostId = 1
+@joinRequestId = 1
+@conversationId = 1
+@ownerApplicationId = 1
+
+# Run the named login requests first. Protected examples use their response tokens.
+# Alternatively replace dynamic tokens with {{userToken}}, {{ownerToken}}, etc.
+
+############################################
+# HEALTH
+############################################
+
+### Health check (mounted outside /api)
+GET {{healthUrl}}
+
+############################################
+# AUTH
+############################################
+
+### Register USER
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "rest_client_admin",
+  "email": "admin@example.com",
+  "password": "password123",
+  "confirmPassword": "password123"
+}
+
+### [VALIDATION] Register with mismatched passwords
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "rest_client_invalid",
+  "email": "rest-client-invalid@example.com",
+  "password": "password123",
+  "confirmPassword": "different123"
+}
+
+### Login USER
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Login USER B (ownership/access regression tests)
+# @name loginUserB
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userBEmail}}",
+  "password": "{{userBPassword}}"
+}
+
+### Login OWNER
+# @name loginOwner
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{ownerPassword}}"
+}
+
+### Login ADMIN
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Get authenticated user
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### [401] Get authenticated user without token
+GET {{baseUrl}}/auth/me
+
+############################################
+# PROFILE
+############################################
+
+### Get my profile
+GET {{baseUrl}}/profiles/me
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Update my profile
+PATCH {{baseUrl}}/profiles/me
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "firstName": "Rest",
+  "lastName": "Client",
+  "phone": "0812345678",
+  "bio": "API test profile",
+  "gender": "OTHER",
+  "birthdate": "2000-01-01",
+  "occupation": "Developer",
+  "currentAddress": "Bangkok"
+}
+
+### Get profile by user ID (authentication required)
+GET {{baseUrl}}/profiles/{{userId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### [VALIDATION] Empty profile update
+PATCH {{baseUrl}}/profiles/me
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{}
+
+############################################
+# OWNER APPLICATION
+############################################
+
+### Submit owner application
+POST {{baseUrl}}/owner-applications
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "documentUrl": "https://example.com/documents/owner-application.pdf"
+}
+
+### Get my owner application
+GET {{baseUrl}}/owner-applications/me
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### [401] Submit owner application without token
+POST {{baseUrl}}/owner-applications
+Content-Type: application/json
+
+{}
+
+############################################
+# PROPERTY
+############################################
+
+### Get public properties (all supported query parameters shown)
+GET {{baseUrl}}/properties?q=Bangkok&province=Bangkok&propertyType=CONDO&rentType=WHOLE_UNIT&propertyStatus=AVAILABLE&minRent=5000&maxRent=30000&page=1&limit=10
+
+### Get property by ID (public; optional valid Bearer token is accepted)
+GET {{baseUrl}}/properties/{{propertyId}}
+
+### Get my properties (OWNER)
+GET {{baseUrl}}/properties/me
+Authorization: Bearer {{loginOwner.response.body.token}}
+
+### Create property (OWNER)
+POST {{baseUrl}}/properties
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Condo near transit",
+  "description": "A furnished unit available for long-term rent",
+  "propertyType": "CONDO",
+  "rentType": "WHOLE_UNIT",
+  "monthlyRent": 15000,
+  "deposit": 30000,
+  "availableDate": "2026-09-15",
+  "totalBedrooms": 1
+}
+
+### Update property (OWNER who owns property)
+PATCH {{baseUrl}}/properties/{{propertyId}}
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Updated condo near transit",
+  "monthlyRent": 15500
+}
+
+### Update property status (OWNER who owns property)
+PATCH {{baseUrl}}/properties/{{propertyId}}/status
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyStatus": "AVAILABLE"
+}
+
+### Create property address (OWNER who owns property)
+POST {{baseUrl}}/properties/{{propertyId}}/address
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "province": "Bangkok",
+  "district": "Watthana",
+  "subDistrict": "Khlong Tan Nuea",
+  "postcode": "10110",
+  "road": "Sukhumvit",
+  "building": "Example Residence",
+  "latitude": 13.7308,
+  "longitude": 100.5418
+}
+
+### Update property address (OWNER who owns property)
+PATCH {{baseUrl}}/properties/{{propertyId}}/address
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "building": "Example Residence Building B"
+}
+
+### Upload property images (field name must be "images"; add test.jpg first)
+POST {{baseUrl}}/properties/{{propertyId}}/images
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: multipart/form-data; boundary=PropertyImageBoundary
+
+--PropertyImageBoundary
+Content-Disposition: form-data; name="images"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./fixtures/test.jpg
+--PropertyImageBoundary--
+
+### Delete property image (OWNER who owns property)
+DELETE {{baseUrl}}/properties/{{propertyId}}/images/{{propertyImageId}}
+Authorization: Bearer {{loginOwner.response.body.token}}
+
+### Get rooms for property (public)
+GET {{baseUrl}}/properties/{{propertyId}}/rooms
+
+### Create room under property (OWNER who owns property)
+POST {{baseUrl}}/properties/{{propertyId}}/rooms
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "roomName": "A-101",
+  "description": "Corner room",
+  "monthlyRent": 7500,
+  "status": "AVAILABLE",
+  "capacity": 2
+}
+
+### [401] Create property without token
+POST {{baseUrl}}/properties
+Content-Type: application/json
+
+{
+  "title": "Unauthorized property",
+  "description": "This request must be rejected",
+  "propertyType": "HOUSE",
+  "rentType": "WHOLE_UNIT",
+  "monthlyRent": 10000
+}
+
+### [403] USER tries to create property
+POST {{baseUrl}}/properties
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Wrong role property",
+  "description": "This request must be rejected",
+  "propertyType": "HOUSE",
+  "rentType": "WHOLE_UNIT",
+  "monthlyRent": 10000
+}
+
+### [VALIDATION] Invalid rent range
+GET {{baseUrl}}/properties?minRent=20000&maxRent=10000
+
+### Delete property (destructive: OWNER who owns property)
+DELETE {{baseUrl}}/properties/{{propertyId}}
+Authorization: Bearer {{loginOwner.response.body.token}}
+
+############################################
+# ROOM
+############################################
+
+### Update room (authenticated property owner; route has no role middleware)
+PATCH {{baseUrl}}/rooms/{{roomId}}
+Authorization: Bearer {{loginOwner.response.body.token}}
+Content-Type: application/json
+
+{
+  "roomName": "A-101 Updated",
+  "description": "Renovated corner room",
+  "monthlyRent": 7800,
+  "status": "AVAILABLE",
+  "capacity": 2
+}
+
+### Delete room (destructive; authenticated property owner)
+DELETE {{baseUrl}}/rooms/{{roomId}}
+Authorization: Bearer {{loginOwner.response.body.token}}
+
+############################################
+# COMMUNITY POST
+############################################
+
+### Get all community posts (public)
+# SECURITY CHECK: current service exposes creator.email and the complete profile,
+# including phone, birthdate and currentAddress. Verify this PII leakage.
+GET {{baseUrl}}/community-posts/
+
+### Get community post by ID (public)
+# SECURITY CHECK: current service exposes creator.email and complete profile.
+GET {{baseUrl}}/community-posts/{{communityPostId}}
+
+### Create community post
+POST {{baseUrl}}/community-posts/
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyId": {{propertyId}},
+  "title": "Looking for a roommate",
+  "description": "Looking for one person to share this property",
+  "requiredMembers": 2,
+  "status": "OPEN"
+}
+
+### Update own community post (full body required by current schema)
+PATCH {{baseUrl}}/community-posts/{{communityPostId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyId": {{propertyId}},
+  "title": "Looking for two roommates",
+  "description": "Updated community post",
+  "requiredMembers": 3,
+  "status": "OPEN"
+}
+
+### Get join requests (post creator only)
+GET {{baseUrl}}/community-posts/{{communityPostId}}/join-requests
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Get community members (public)
+# SECURITY CHECK: current service exposes member email and complete profile.
+GET {{baseUrl}}/community-posts/{{communityPostId}}/members
+
+### Request to join community
+POST {{baseUrl}}/community-posts/{{communityPostId}}/join-requests
+Authorization: Bearer {{loginUserB.response.body.token}}
+Content-Type: application/json
+
+{
+  "message": "I am interested in joining this group"
+}
+
+### [VALIDATION] Community title shorter than 6 characters
+POST {{baseUrl}}/community-posts/
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyId": {{propertyId}},
+  "title": "Short",
+  "description": "Invalid title test",
+  "requiredMembers": 1
+}
+
+### Delete own community post (destructive)
+DELETE {{baseUrl}}/community-posts/{{communityPostId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+
+############################################
+# JOIN REQUEST
+############################################
+
+### Accept join request (community creator only)
+PATCH {{baseUrl}}/join-requests/{{joinRequestId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "action": "ACCEPT"
+}
+
+### Reject join request (community creator only)
+PATCH {{baseUrl}}/join-requests/{{joinRequestId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "action": "REJECT"
+}
+
+############################################
+# CONVERSATION
+############################################
+
+### Get my conversations
+GET {{baseUrl}}/conversations/
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Create conversation (must include the property's owner)
+POST {{baseUrl}}/conversations/
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyId": {{propertyId}},
+  "memberId": {{ownerId}}
+}
+
+### Get conversation by ID (member only)
+GET {{baseUrl}}/conversations/{{conversationId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Get conversation messages (member only)
+GET {{baseUrl}}/conversations/{{conversationId}}/messages?page=1&limit=20
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Send conversation message (member only)
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "message": "Hello, is this property still available?"
+}
+
+### Mark other member's messages as read
+PATCH {{baseUrl}}/conversations/{{conversationId}}/read
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### [VALIDATION] Send blank message
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "message": "   "
+}
+
+############################################
+# ADMIN
+############################################
+
+### Get users (ADMIN)
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Update user status (ADMIN; state-changing)
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+
+### Get dashboard (ADMIN)
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Get owner applications (ADMIN)
+GET {{baseUrl}}/admin/owner-applications?status=PENDING
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Get owner application by ID (ADMIN)
+GET {{baseUrl}}/admin/owner-applications/{{ownerApplicationId}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Approve owner application (ADMIN; state-changing)
+PATCH {{baseUrl}}/admin/owner-applications/{{ownerApplicationId}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "APPROVED"
+}
+
+### Reject owner application (alternative state-changing request)
+PATCH {{baseUrl}}/admin/owner-applications/{{ownerApplicationId}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "REJECTED",
+  "rejectReason": "Document is unclear"
+}
+
+### Get properties for review (ADMIN)
+GET {{baseUrl}}/admin/properties?publishStatus=PENDING
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Get property for review by ID (ADMIN)
+GET {{baseUrl}}/admin/properties/{{propertyId}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### Approve property publication (ADMIN; state-changing)
+PATCH {{baseUrl}}/admin/properties/{{propertyId}}/publish-status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "publishStatus": "APPROVED"
+}
+
+### Reject property publication (alternative state-changing request)
+PATCH {{baseUrl}}/admin/properties/{{propertyId}}/publish-status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "publishStatus": "REJECTED",
+  "rejectReason": "Property information is incomplete"
+}
+
+### [403] USER tries ADMIN endpoint
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### [VALIDATION] Invalid user status
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "DISABLED"
+}
+
+############################################
+# SECURITY / REGRESSION
+############################################
+
+### [EXPECTED 403, CURRENT BUG: likely 200] USER B must not edit USER A's post
+# Current update service does not verify ownership and reconnects creator to caller.
+PATCH {{baseUrl}}/community-posts/{{userACommunityPostId}}
+Authorization: Bearer {{loginUserB.response.body.token}}
+Content-Type: application/json
+
+{
+  "propertyId": {{propertyId}},
+  "title": "Unauthorized post edit",
+  "description": "Ownership regression test",
+  "requiredMembers": 2,
+  "status": "OPEN"
+}
+
+### [EXPECTED 403, CURRENT BUG: likely 200] USER B must not delete USER A's post
+# Current delete service receives no caller ID and performs no ownership check.
+DELETE {{baseUrl}}/community-posts/{{userACommunityPostId}}
+Authorization: Bearer {{loginUserB.response.body.token}}
+
+### [EXPECTED VALIDATION ERROR, CURRENT BUG: treated as ACCEPT] Invalid join action
+# Service rejects only exact "REJECT"; every other value enters the accept branch.
+PATCH {{baseUrl}}/join-requests/{{joinRequestId}}
+Authorization: Bearer {{loginUser.response.body.token}}
+Content-Type: application/json
+
+{
+  "action": "HELLO"
+}
+
+### Suspend USER using ADMIN (state-changing; run only with a disposable account)
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "SUSPENDED"
+}
+
+### [EXPECTED 401/403, CURRENT BEHAVIOR: likely 200] Reuse pre-suspension token
+# authenticate verifies JWT only. Endpoints without allowRoles do not reload status.
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{loginUser.response.body.token}}
+
+### Restore suspended USER (ADMIN cleanup)
+PATCH {{baseUrl}}/admin/users/{{userId}}/status
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+
+### Public PII regression: community collection
+# Inspect creator/profile and ensure email, phone, birthdate, currentAddress and other
+# private fields are absent. Current implementation explicitly includes them.
+GET {{baseUrl}}/community-posts/
+
+### [403] Non-member reads conversation messages
+GET {{baseUrl}}/conversations/{{conversationId}}/messages?page=1&limit=20
+Authorization: Bearer {{loginUserB.response.body.token}}
+
+############################################
+# INACTIVE / NOT MOUNTED
+############################################
+
+# /api/rentals is NOT MOUNTED: its import and app.use are commented in src/app.js.
+# src/routes/rental.route.js and its controller are empty, so no reliable request exists.
+# Auth logout and PATCH /auth/me are comments only and are not active endpoints.

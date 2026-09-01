@@ -26,10 +26,7 @@ const profileSelect = {
 };
 
 const publicProfileSelect = {
-  id: true,
-  userId: true,
   firstName: true,
-  lastName: true,
   profileImageUrl: true,
   bio: true,
   gender: true,
