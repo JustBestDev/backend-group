@@ -1,4 +1,5 @@
 import {
+  checkPropertyImageCapacityService,
   createPropertyAddressService,
   createPropertyImagesService,
   createPropertyService,
@@ -22,6 +23,19 @@ import {
   updatePropertyAddressSchema,
   updatePropertyStatusSchema,
 } from "../validations/schema.js";
+
+export async function checkPropertyImageCapacity(req, res, next) {
+  try {
+    req.propertyImageCapacity = await checkPropertyImageCapacityService(
+      req.params.propertyId,
+      req.user.id,
+      req.files?.length || 0
+    );
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function deletePropertyImage(req, res, next) {
   try {

@@ -212,6 +212,20 @@ model Room {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   rentals Rental[]
+  images  RoomImage[]
+}
+
+model RoomImage {
+  id                 Int      @id @default(autoincrement())
+  roomId             Int
+  imageUrl           String
+  cloudinaryPublicId String?
+  isCover            Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
 }
 
 model PropertyImage {
