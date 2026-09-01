@@ -89,6 +89,8 @@ export async function uploadImagesToCloudinary(files, propertyId) {
     throw createError(502, `Cloudinary upload failed: ${failedUpload.reason.message}`);
   }
 
+  console.log('uploadedImages', uploadedImages)
+
   return uploadedImages;
 }
 
