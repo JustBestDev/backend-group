@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  checkPropertyImageCapacity,
   createPropertyAddress,
   createPropertyImages,
   createProperty,
@@ -16,7 +17,7 @@ import {
 } from "../controllers/property.controller.js";
 import { authenticate, optionalAuthenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
-import { uploadPropertyImages } from "../utils/uploadCloud.js";
+import { uploadPropertyImages } from "../utils/uploadCloudProrerty.js";
 const propertyRoute = express();
 
 propertyRoute.get("/", getProperties);
@@ -30,7 +31,14 @@ propertyRoute.patch("/:propertyId/status", authenticate, allowRoles("OWNER"), up
 propertyRoute.post("/:propertyId/address", authenticate, allowRoles("OWNER"), createPropertyAddress);
 propertyRoute.patch("/:propertyId/address", authenticate, allowRoles("OWNER"), updatePropertyAddress);
 
-propertyRoute.post("/:propertyId/images", authenticate, allowRoles("OWNER"), uploadPropertyImages, createPropertyImages);
+propertyRoute.post(
+  "/:propertyId/images",
+  authenticate,
+  allowRoles("OWNER"),
+  uploadPropertyImages,
+  checkPropertyImageCapacity,
+  createPropertyImages
+);
 propertyRoute.delete("/:propertyId/images/:imageId", authenticate, allowRoles("OWNER"), deletePropertyImage);
 
 

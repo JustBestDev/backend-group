@@ -3,8 +3,61 @@ import createError from "http-errors";
 import {
   deleteCloudinaryImages,
   deleteImageFromCloudinary,
+  MAX_PROPERTY_IMAGES,
   uploadImagesToCloudinary,
-} from "../utils/uploadCloud.js";
+} from "../utils/uploadCloudProrerty.js";
+
+export async function checkPropertyImageCapacityService(
+  propertyId,
+  ownerId,
+  newImageCount
+) {
+  const parsedPropertyId = Number(propertyId);
+
+  if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+    throw createError(400, "Invalid property ID");
+  }
+
+  if (!Number.isInteger(newImageCount) || newImageCount < 1) {
+    throw createError(400, "At least one image is required");
+  }
+
+  const property = await prisma.property.findFirst({
+    where: {
+      id: parsedPropertyId,
+      deletedAt: null,
+    },
+    select: {
+      ownerId: true,
+      _count: {
+        select: { images: true },
+      },
+    },
+  });
+
+  if (!property) {
+    throw createError(404, "Property not found");
+  }
+
+  if (property.ownerId !== Number(ownerId)) {
+    throw createError(403, "You are not the owner of this property");
+  }
+
+  const remainingSlots = MAX_PROPERTY_IMAGES - property._count.images;
+  if (newImageCount > remainingSlots) {
+    throw createError(
+      409,
+      remainingSlots === 0
+        ? `This property already has the maximum of ${MAX_PROPERTY_IMAGES} images`
+        : `Only ${remainingSlots} more image(s) can be added`
+    );
+  }
+
+  return {
+    currentImageCount: property._count.images,
+    remainingSlots,
+  };
+}
 
 const propertyOwnerSelect = {
   id: true,
@@ -136,10 +189,10 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
     throw createError(403, "You are not the owner of this property");
   }
 
-  if (property._count.images + files.length > 10) {
+  if (property._count.images + files.length > MAX_PROPERTY_IMAGES) {
     throw createError(
-      400,
-      `A property can have no more than 10 images; ${property._count.images} already exist`
+      409,
+      `A property can have no more than ${MAX_PROPERTY_IMAGES} images; ${property._count.images} already exist`
     );
   }
 
@@ -154,7 +207,7 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
           },
         });
 
-        if (currentImageCount + cloudImages.length > 10) {
+        if (currentImageCount + cloudImages.length > MAX_PROPERTY_IMAGES) {
           throw createError(409, "The property image limit was reached during upload");
         }
 

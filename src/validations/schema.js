@@ -171,3 +171,30 @@ export const ownerApplicationSchema = z
       .optional(),
   })
   .strict();
+
+const rentalDateSchema = z
+  .union([z.iso.date(), z.iso.datetime()])
+  .transform((value) => new Date(value));
+
+export const createRentalSchema = z
+  .object({
+    propertyId: z.coerce.number().int().positive(),
+    roomId: z.coerce.number().int().positive().nullable().optional(),
+    memberIds: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "At least one rental member is required")
+      .max(20, "A rental cannot have more than 20 members")
+      .refine((ids) => new Set(ids).size === ids.length, {
+        message: "memberIds must not contain duplicates",
+      }),
+    startDate: rentalDateSchema,
+    endDate: rentalDateSchema.nullable().optional(),
+  })
+  .strict()
+  .refine(
+    (data) => !data.endDate || data.endDate > data.startDate,
+    {
+      message: "endDate must be later than startDate",
+      path: ["endDate"],
+    }
+  );
