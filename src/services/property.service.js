@@ -6,6 +6,18 @@ import {
   uploadImagesToCloudinary,
 } from "../utils/uploadCloud.js";
 
+const propertyOwnerSelect = {
+  id: true,
+  username: true,
+  profile: {
+    select: {
+      firstName: true,
+      profileImageUrl: true,
+      isVerified: true,
+    },
+  },
+};
+
 export async function deletePropertyImageService(propertyId, imageId, ownerId) {
   const parsedPropertyId = Number(propertyId);
   const parsedImageId = Number(imageId);
@@ -202,11 +214,7 @@ export async function getPropertiesService(query) {
         where,
         include: {
           owner: {
-            select: {
-              id: true,
-              username: true,
-              profile: true,
-            },
+            select: propertyOwnerSelect,
           },
           address: true,
           images: {
@@ -340,17 +348,7 @@ export async function getPropertyByIdService(propertyId, viewerId) {
       },
       include: {
         owner: {
-          select: {
-            id: true,
-            username: true,
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-                profileImageUrl: true,
-              },
-            },
-          },
+          select: propertyOwnerSelect,
         },
         address: true,
         images: {
@@ -644,10 +642,7 @@ export async function getRoomPropertyById(propertyId) {
       },
       include: {
         owner: {
-          select: {
-            email: true,
-            profile: true,
-          },
+          select: propertyOwnerSelect,
         },
       },
     });

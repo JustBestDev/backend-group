@@ -1,5 +1,54 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
+import {
+  PropertyStatus,
+  PublishStatus,
+} from "../../generated/prisma/client.js";
+
+const communityPostCreatorSelect = {
+  id: true,
+  username: true,
+  profile: {
+    select: {
+      firstName: true,
+      profileImageUrl: true,
+      isVerified: true,
+    },
+  },
+};
+
+const communityMemberSelect = {
+  id: true,
+  username: true,
+  profile: {
+    select: {
+      firstName: true,
+      profileImageUrl: true,
+      bio: true,
+      gender: true,
+      occupation: true,
+      isVerified: true,
+    },
+  },
+};
+
+async function ensureCommunityPostPropertyIsAvailable(propertyId) {
+  const property = await prisma.property.findFirst({
+    where: {
+      id: Number(propertyId),
+      deletedAt: null,
+      publishStatus: PublishStatus.APPROVED,
+      propertyStatus: PropertyStatus.AVAILABLE,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!property) {
+    throw createError(404, "Property not found");
+  }
+}
 
 export async function getAllCommunitiesService() {
   try {
@@ -7,10 +56,7 @@ export async function getAllCommunitiesService() {
       include: {
         property: true,
         creator: {
-          select: {
-            email: true,
-            profile: true,
-          },
+          select: communityPostCreatorSelect,
         },
       },
     });
@@ -32,10 +78,7 @@ export async function getAllCommunitiesByIdService(postId) {
       include: {
         property: true,
         creator: {
-          select: {
-            email: true,
-            profile: true,
-          },
+          select: communityPostCreatorSelect,
         },
       },
     });
@@ -70,10 +113,7 @@ export async function getCommunityJoinRequestsService(postId, id) {
       },
       include: {
         user: {
-          select: {
-            email: true,
-            profile: true,
-          },
+          select: communityMemberSelect,
         },
       },
     });
@@ -94,10 +134,7 @@ export async function getCommunityMembersService(postId) {
       },
       include: {
         user: {
-          select: {
-            email: true,
-            profile: true,
-          },
+          select: communityMemberSelect,
         },
       },
     });
@@ -130,16 +167,11 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
       throw createError(403, "Forbidden");
     }
 
-    // เช็ค property มีอยู่หรือไม่
-    const property = await prisma.property.findFirst({
-      where: {
-        id: Number(postData.propertyId),
-        deletedAt: null,
-      },
-    });
-    if (!property) {
-      throw createError(400, "Property not found");
+    // Validate a replacement property only when the patch includes propertyId.
+    if (postData.propertyId !== undefined) {
+      await ensureCommunityPostPropertyIsAvailable(postData.propertyId);
     }
+
     const updateCommunityPost = await prisma.communityPost.update({
       where: {
         id: Number(postId),
@@ -148,12 +180,14 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
         title: postData.title,
         description: postData.description,
         requiredMembers: postData.requiredMembers,
-        status: postData.status || "OPEN",
-        property: {
-          connect: {
-            id: Number(postData.propertyId),
+        status: postData.status,
+        ...(postData.propertyId !== undefined && {
+          property: {
+            connect: {
+              id: Number(postData.propertyId),
+            },
           },
-        },
+        }),
       },
     });
     return updateCommunityPost;
@@ -167,17 +201,8 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
 
 export async function createCommunityPostService(postData, creatorId) {
   try {
-    // เช็ค property มีอยู่หรือไม่
-    const property = await prisma.property.findFirst({
-      where: {
-        id: Number(postData.propertyId),
-        deletedAt: null,
-      },
-    });
-
-    if (!property) {
-      throw createError(400, "Property not found");
-    }
+    // A new post must reference an eligible property.
+    await ensureCommunityPostPropertyIsAvailable(postData.propertyId);
 
     const createCommunityPost = await prisma.communityPost.create({
       data: {
@@ -251,17 +276,39 @@ export async function joinRequestCommunityPostService(postId, message, userId) {
   }
 }
 
-export async function deleteCommunityPostService(postId) {
+export async function deleteCommunityPostService(postId, creatorId) {
   try {
+    const communityPost = await prisma.communityPost.findUnique({
+      where: {
+        id: Number(postId),
+      },
+      select: {
+        id: true,
+        creatorId: true,
+      },
+    });
+
+    if (!communityPost) {
+      throw createError(404, "Community post not found");
+    }
+
+    if (communityPost.creatorId !== Number(creatorId)) {
+      throw createError(403, "Forbidden");
+    }
+
     const deleteCommunityPost = await prisma.communityPost.delete({
       where: {
         id: Number(postId),
+        creatorId: Number(creatorId),
       },
     });
     return deleteCommunityPost;
   } catch (error) {
     if (error.status) {
       throw error;
+    }
+    if (error.code === "P2025") {
+      throw createError(404, "Community post not found");
     }
     throw createError(500, error.message);
   }

@@ -27,6 +27,13 @@ export const updateUserStatusSchema = z
     status: z.enum(UserStatus),
   })
   .strict();
+
+export const updateJoinRequestSchema = z
+  .object({
+    action: z.enum(["ACCEPT", "REJECT"]),
+  })
+  .strict();
+
 export const updateProfileSchema = z
   .object({
     firstName: z.string().nullable().optional(),
@@ -60,6 +67,12 @@ export const communityPostSchema = z.object({
 
   status: z.string().optional(),
 });
+
+export const updateCommunityPostSchema = communityPostSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one community post field is required",
+  });
 
 export const registerRoomSchema = z.object({
   roomName: z.string().min(1, "roomName is required").trim(),

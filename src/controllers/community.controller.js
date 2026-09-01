@@ -8,7 +8,10 @@ import {
   joinRequestCommunityPostService,
   updateCommunityPostService,
 } from "../services/community.service.js";
-import { communityPostSchema } from "../validations/schema.js";
+import {
+  communityPostSchema,
+  updateCommunityPostSchema,
+} from "../validations/schema.js";
 import createError from "http-errors";
 
 // Get all communities
@@ -64,7 +67,7 @@ export const updateCommunityPost = async (req, res, next) => {
       throw createError(400, "Invalid post ID");
     }
 
-    const postData = communityPostSchema.parse(req.body);
+    const postData = updateCommunityPostSchema.parse(req.body);
     const { id } = req.user;
     // console.log('postData', postData)
     // console.log('postId', postId)
@@ -104,8 +107,14 @@ export const joinRequestCommunityPost = async (req, res, next) => {
 // Delete community post
 export const deleteCommunityPost = async (req, res, next) => {
   try {
-    const { postId } = req.params;
-    const result = await deleteCommunityPostService(postId);
+    const postId = Number(req.params.postId);
+
+    if (!Number.isInteger(postId) || postId <= 0) {
+      throw createError(400, "Invalid post ID");
+    }
+
+    const { id } = req.user;
+    const result = await deleteCommunityPostService(postId, id);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

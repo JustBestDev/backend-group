@@ -3,6 +3,10 @@ import createError from "http-errors";
 
 export async function updateJoinRequestService(requestId, action, userId) {
   try {
+    if (!["ACCEPT", "REJECT"].includes(action)) {
+      throw createError(400, "Invalid action");
+    }
+
     // 1. ค้นหา joinRequest
     const joinRequest = await prisma.joinRequest.findUnique({
       where: {
