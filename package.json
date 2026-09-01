@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "seed": "prisma db seed"
   },
   "keywords": [],
   "type": "module",
