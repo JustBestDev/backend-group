@@ -47,10 +47,20 @@ export const getProfileByUserId = async (req, res, next) => {
 
 export const updateMyProfile = async (req, res, next) => {
   try {
-    console.log('req.user.id', req.user.id)
-    console.log('req.body', req.body)
-    const profileData = updateProfileSchema.parse(req.body);
-    const profile = await updateProfileByUserId(req.user.id, profileData);
+    const hasProfileFields = Object.keys(req.body || {}).length > 0;
+
+    if (!hasProfileFields && !req.file) {
+      throw createError(400, "At least one profile field or profileImage is required");
+    }
+
+    const profileData = hasProfileFields
+      ? updateProfileSchema.parse(req.body)
+      : {};
+    const profile = await updateProfileByUserId(
+      req.user.id,
+      profileData,
+      req.file
+    );
 
     if (!profile) {
       return next(createError(404, "Profile not found"));
