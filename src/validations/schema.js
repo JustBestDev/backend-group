@@ -162,16 +162,6 @@ export const updatePropertyAddressSchema = createPropertyAddressSchema
     message: "At least one address field is required",
   });
 
-export const ownerApplicationSchema = z
-  .object({
-    documentUrl: z
-      .string()
-      .trim()
-      .url("documentUrl must be a valid URL")
-      .optional(),
-  })
-  .strict();
-
 const rentalDateSchema = z
   .union([z.iso.date(), z.iso.datetime()])
   .transform((value) => new Date(value));

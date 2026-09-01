@@ -143,13 +143,25 @@ model OwnerApplication {
   userId       Int
   reviewedById Int?
   status       ApplicationStatus @default(PENDING)
-  documentUrl  String?
   rejectReason String?
   createdAt    DateTime          @default(now())
   reviewedAt   DateTime?
 
-  user       User  @relation("OwnerApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy User? @relation("OwnerApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  user       User                       @relation("OwnerApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?                      @relation("OwnerApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  documents  OwnerApplicationDocument[]
+}
+
+model OwnerApplicationDocument {
+  id                 Int      @id @default(autoincrement())
+  ownerApplicationId Int
+  documentUrl        String
+  cloudinaryPublicId String?
+  createdAt          DateTime @default(now())
+
+  ownerApplication OwnerApplication @relation(fields: [ownerApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([ownerApplicationId, createdAt])
 }
 
 model Property {
