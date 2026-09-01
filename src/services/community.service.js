@@ -112,6 +112,24 @@ export async function getCommunityMembersService(postId) {
 
 export async function updateCommunityPostService(postData, creatorId, postId) {
   try {
+    const communityPost = await prisma.communityPost.findUnique({
+      where: {
+        id: Number(postId),
+      },
+      select: {
+        id: true,
+        creatorId: true,
+      },
+    });
+
+    if (!communityPost) {
+      throw createError(404, "Community post not found");
+    }
+
+    if (communityPost.creatorId !== Number(creatorId)) {
+      throw createError(403, "Forbidden");
+    }
+
     // เช็ค property มีอยู่หรือไม่
     const property = await prisma.property.findFirst({
       where: {
@@ -134,11 +152,6 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
         property: {
           connect: {
             id: Number(postData.propertyId),
-          },
-        },
-        creator: {
-          connect: {
-            id: Number(creatorId),
           },
         },
       },

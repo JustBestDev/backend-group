@@ -9,6 +9,7 @@ import {
   updateCommunityPostService,
 } from "../services/community.service.js";
 import { communityPostSchema } from "../validations/schema.js";
+import createError from "http-errors";
 
 // Get all communities
 export const getAllCommunities = async (req, res, next) => {
@@ -57,9 +58,17 @@ export const getCommunityMembers = async (req, res, next) => {
 // Patch update communities post
 export const updateCommunityPost = async (req, res, next) => {
   try {
+    const postId = Number(req.params.postId);
+
+    if (!Number.isInteger(postId) || postId <= 0) {
+      throw createError(400, "Invalid post ID");
+    }
+
     const postData = communityPostSchema.parse(req.body);
-    const { postId } = req.params;
     const { id } = req.user;
+    // console.log('postData', postData)
+    // console.log('postId', postId)
+    // console.log('id', id)
     const result = await updateCommunityPostService(postData, id, postId);
     return res.status(200).json(result);
   } catch (error) {
