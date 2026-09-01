@@ -198,3 +198,17 @@ export const createRentalSchema = z
       path: ["endDate"],
     }
   );
+
+export const getMyRentalsQuerySchema = z
+  .object({
+    status: z.enum(["PENDING", "ACTIVE", "COMPLETED", "CANCELLED"]).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict();
+
+export const updateRentalStatusSchema = z
+  .object({
+    status: z.enum(["ACTIVE", "COMPLETED", "CANCELLED"]),
+  })
+  .strict();
