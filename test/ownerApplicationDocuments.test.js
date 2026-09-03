@@ -2,11 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  assertOwnerApplicationDocumentLimit,
   createOwnerDocumentSignedUrl,
   deletePrivateOwnerDocuments,
   OWNER_DOCUMENT_URL_TTL_SECONDS,
   validateOwnerApplicationDocuments,
 } from "../src/utils/uploadCloudOwnerApplication.js";
+
+test("enforces the five-document total for appended owner documents", () => {
+  assert.doesNotThrow(() => assertOwnerApplicationDocumentLimit(2, 1));
+  assert.throws(
+    () => assertOwnerApplicationDocumentLimit(4, 2),
+    (error) => error.status === 400 && /no more than 5/.test(error.message)
+  );
+});
 
 const runValidation = (files) =>
   new Promise((resolve) => {

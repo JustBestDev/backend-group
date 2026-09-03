@@ -32,6 +32,7 @@ enum Gender {
 
 enum ApplicationStatus {
   PENDING
+  NEED_MORE_DOCUMENTS
   APPROVED
   REJECTED
 }

@@ -3,7 +3,22 @@ import createError from "http-errors";
 import {
   createOwnerApplication,
   findCurrentUserOwnerApplication,
+  resubmitCurrentUserOwnerApplicationDocuments,
 } from "../services/ownerApplication.service.js";
+import { createOwnerDocumentSignedUrl } from "../utils/uploadCloudOwnerApplication.js";
+
+const presentOwnerApplication = (application) => ({
+  ...application,
+  phone: application.user?.profile?.phone ?? null,
+  user: undefined,
+  documents: application.documents.map((document) => ({
+    id: document.id,
+    createdAt: document.createdAt,
+    signedUrl: document.cloudinaryPublicId
+      ? createOwnerDocumentSignedUrl(document.cloudinaryPublicId)
+      : null,
+  })),
+});
 
 export const submitOwnerApplication = async (req, res, next) => {
   try {
@@ -28,7 +43,22 @@ export const getMyOwnerApplication = async (req, res, next) => {
 
     return res.status(200).json({
       message: "Owner application retrieved successfully",
-      data: application,
+      data: presentOwnerApplication(application),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resubmitMyOwnerApplication = async (req, res, next) => {
+  try {
+    const application = await resubmitCurrentUserOwnerApplicationDocuments(
+      req.user.id,
+      req.files
+    );
+    return res.status(200).json({
+      message: "Owner application resubmitted successfully",
+      data: presentOwnerApplication(application),
     });
   } catch (error) {
     next(error);
