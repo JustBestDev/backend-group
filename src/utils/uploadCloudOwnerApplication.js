@@ -9,6 +9,12 @@ export const MAX_OWNER_DOCUMENTS = 5;
 export const MAX_OWNER_DOCUMENT_SIZE = 5 * 1024 * 1024;
 export const OWNER_DOCUMENT_URL_TTL_SECONDS = 10 * 60;
 
+export function assertOwnerApplicationDocumentLimit(existingCount, newCount) {
+  if (existingCount + newCount > MAX_OWNER_DOCUMENTS) {
+    throw createError(400, `An owner application can have no more than ${MAX_OWNER_DOCUMENTS} documents`);
+  }
+}
+
 const allowedMimeTypes = new Set([
   "image/jpeg",
   "image/png",

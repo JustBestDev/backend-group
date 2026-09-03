@@ -2,6 +2,7 @@ import express from "express";
 
 import {
   getMyOwnerApplication,
+  resubmitMyOwnerApplication,
   submitOwnerApplication,
 } from "../controllers/ownerApplication.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
@@ -21,5 +22,11 @@ router.post(
   submitOwnerApplication
 );
 router.get("/me", getMyOwnerApplication);
+router.patch(
+  "/me",
+  uploadOwnerApplicationDocuments,
+  validateOwnerApplicationDocuments,
+  resubmitMyOwnerApplication
+);
 
 export default router;

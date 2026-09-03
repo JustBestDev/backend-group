@@ -132,7 +132,7 @@ export const getOwnerApplications = async (req, res, next) => {
   try {
     const { status } = req.query;
 
-    const allowedStatuses = ["PENDING", "APPROVED", "REJECTED"];
+    const allowedStatuses = ["PENDING", "NEED_MORE_DOCUMENTS", "APPROVED", "REJECTED"];
 
     if (status && !allowedStatuses.includes(status)) {
       return next(createError(400, "Invalid application status"));
@@ -277,18 +277,18 @@ export const reviewOwnerApplication = async (req, res, next) => {
       return next(createError(400, "Invalid application ID"));
     }
 
-    if (!["APPROVED", "REJECTED"].includes(status)) {
+    if (!["APPROVED", "REJECTED", "NEED_MORE_DOCUMENTS"].includes(status)) {
       return next(
-        createError(400, "Status must be APPROVED or REJECTED")
+        createError(400, "Status must be APPROVED, REJECTED, or NEED_MORE_DOCUMENTS")
       );
     }
 
     if (
-      status === "REJECTED" &&
+      ["REJECTED", "NEED_MORE_DOCUMENTS"].includes(status) &&
       (!rejectReason || !rejectReason.trim())
     ) {
       return next(
-        createError(400, "Reject reason is required")
+        createError(400, "An admin message is required")
       );
     }
 
@@ -328,7 +328,7 @@ export const reviewOwnerApplication = async (req, res, next) => {
             reviewedById: adminId,
             reviewedAt: new Date(),
             rejectReason:
-              status === "REJECTED"
+              ["REJECTED", "NEED_MORE_DOCUMENTS"].includes(status)
                 ? rejectReason.trim()
                 : null,
           },
@@ -380,7 +380,9 @@ export const reviewOwnerApplication = async (req, res, next) => {
       message:
         status === "APPROVED"
           ? "Owner application approved successfully"
-          : "Owner application rejected successfully",
+          : status === "NEED_MORE_DOCUMENTS"
+            ? "Additional owner documents requested successfully"
+            : "Owner application rejected successfully",
       data: updatedApplication,
     });
   } catch (error) {
