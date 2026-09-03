@@ -34,22 +34,44 @@ export const updateJoinRequestSchema = z
   })
   .strict();
 
+const nullableProfileString = (schema = z.string()) =>
+  z.preprocess(
+    (value) => (value === "" ? null : value),
+    schema.nullable().optional()
+  );
+
+const nullableBirthdate = z.preprocess(
+  (value) => (value === "" ? null : value),
+  z
+    .union([
+      z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`)),
+      z.null(),
+    ])
+    .refine(
+      (value) => value === null || value >= new Date("1900-01-01T00:00:00.000Z"),
+      "birthdate must be on or after 1900-01-01"
+    )
+    .refine(
+      (value) => value === null || value <= new Date(),
+      "birthdate cannot be in the future"
+    )
+);
+
 export const updateProfileSchema = z
   .object({
-    firstName: z.string().nullable().optional(),
-    lastName: z.string().nullable().optional(),
-    phone: z.string().nullable().optional(),
+    username: z.string().trim().min(3, "username must be at least 3 characters").optional(),
+    firstName: nullableProfileString(),
+    lastName: nullableProfileString(),
+    phone: nullableProfileString(),
     profileImageUrl: z.string().nullable().optional(),
-    bio: z.string().nullable().optional(),
-    gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
-    birthdate: z
-      .union([
-        z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`)),
-        z.null(),
-      ])
-      .optional(),
-    occupation: z.string().nullable().optional(),
-    currentAddress: z.string().nullable().optional(),
+    bio: nullableProfileString(z.string().max(1000, "bio must not exceed 1000 characters")),
+    gender: z.preprocess(
+      (value) => (value === "" ? null : value),
+      z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional()
+    ),
+    birthdate: nullableBirthdate.optional(),
+    occupation: nullableProfileString(z.string().max(191, "occupation must not exceed 191 characters")),
+    currentAddress: nullableProfileString(z.string().max(191, "current address must not exceed 191 characters")),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
