@@ -1,4 +1,8 @@
 import createError from "http-errors";
+import {
+  emitConversationMessagesRead,
+  emitNewConversationMessage,
+} from "../socket.js";
 
 import {
   findPropertyById,
@@ -326,6 +330,7 @@ export const getConversationMessages = async (
 // POST /api/conversations/:conversationId/messages
 // ==============================
 
+
 export const sendConversationMessage = async (
   req,
   res,
@@ -395,6 +400,12 @@ export const sendConversationMessage = async (
         message
       );
 
+    await emitNewConversationMessage(
+      req.app.get("io"),
+      conversationId,
+      newMessage
+    );
+
     return res.status(201).json({
       message: "Message sent successfully",
       data: newMessage,
@@ -452,6 +463,14 @@ export const readConversationMessages = async (
       conversationId,
       currentUserId
     );
+
+    if (result.count > 0) {
+      await emitConversationMessagesRead(
+        req.app.get("io"),
+        conversationId,
+        currentUserId
+      );
+    }
 
     return res.status(200).json({
       message: "Messages marked as read",
