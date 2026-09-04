@@ -1,0 +1,221 @@
+{
+  "info": {
+    "_postman_id": "8987850e-3b14-4ed0-b984-67c9a8f39a1b",
+    "name": "Backend Group - Rental API",
+    "description": "Rental API tests. Prepare an APPROVED/AVAILABLE property owned by ownerEmail and at least one ACTIVE member before running. For INDIVIDUAL_ROOM, also set roomId to an AVAILABLE room.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{ownerToken}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.variables.replaceIn('{{$isoTimestamp}}');"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login as owner",
+      "auth": { "type": "noauth" },
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"{{ownerPassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login",
+        "description": "Logs in as the property owner and saves the JWT as ownerToken."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "pm.test('Response contains token and OWNER role', () => {",
+            "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+            "  pm.expect(json.user.role).to.eql('OWNER');",
+            "});",
+            "if (json.token) pm.collectionVariables.set('ownerToken', json.token);"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "02 - Create rental (PENDING)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"propertyId\": {{propertyId}},\n  \"memberIds\": [{{memberId}}],\n  \"startDate\": \"{{startDate}}\",\n  \"endDate\": \"{{endDate}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/rentals",
+        "description": "Whole-unit payload. For INDIVIDUAL_ROOM add: \"roomId\": {{roomId}}. The property must be APPROVED and AVAILABLE."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.test('Rental starts as PENDING', () => {",
+            "  pm.expect(json.status).to.eql('success');",
+            "  pm.expect(json.data.id).to.be.a('number');",
+            "  pm.expect(json.data.status).to.eql('PENDING');",
+            "  pm.expect(json.data.propertyId).to.eql(Number(pm.collectionVariables.get('propertyId')));",
+            "});",
+            "if (json.data?.id) pm.collectionVariables.set('rentalId', json.data.id);"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "03 - Get my rentals",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/rentals/me?status=PENDING&page=1&limit=10",
+        "description": "Checks filtering, pagination, and the caller's rental role."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "pm.test('Returns paginated PENDING rentals', () => {",
+            "  pm.expect(json.data).to.be.an('array');",
+            "  pm.expect(json.pagination.page).to.eql(1);",
+            "  pm.expect(json.pagination.limit).to.eql(10);",
+            "  pm.expect(json.data.every(item => item.status === 'PENDING')).to.be.true;",
+            "});",
+            "pm.test('Created rental appears as OWNER', () => {",
+            "  const rental = json.data.find(item => item.id === Number(pm.collectionVariables.get('rentalId')));",
+            "  pm.expect(rental).to.exist;",
+            "  pm.expect(rental.myRole).to.eql('OWNER');",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "04 - Get rental by ID",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/rentals/{{rentalId}}"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "pm.test('Returns requested rental with owner role', () => {",
+            "  pm.expect(json.data.id).to.eql(Number(pm.collectionVariables.get('rentalId')));",
+            "  pm.expect(json.data.myRole).to.eql('OWNER');",
+            "  pm.expect(json.data.members).to.be.an('array').that.is.not.empty;",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "05 - Activate rental",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"status\": \"ACTIVE\"\n}" },
+        "url": "{{baseUrl}}/api/rentals/{{rentalId}}/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "pm.test('Rental becomes ACTIVE', () => pm.expect(json.data.status).to.eql('ACTIVE'));",
+            "pm.test('Resource becomes RENTED', () => {",
+            "  if (json.data.roomId) pm.expect(json.data.room.status).to.eql('RENTED');",
+            "  else pm.expect(json.data.property.propertyStatus).to.eql('RENTED');",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "06 - Complete rental",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"status\": \"COMPLETED\"\n}" },
+        "url": "{{baseUrl}}/api/rentals/{{rentalId}}/status"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "pm.test('Rental becomes COMPLETED', () => pm.expect(json.data.status).to.eql('COMPLETED'));",
+            "pm.test('Resource becomes AVAILABLE again', () => {",
+            "  if (json.data.roomId) pm.expect(json.data.room.status).to.eql('AVAILABLE');",
+            "  else pm.expect(json.data.property.propertyStatus).to.eql('AVAILABLE');",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "Validation examples",
+      "item": [
+        {
+          "name": "Reject invalid rental ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rentals/not-a-number" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+          ] } }]
+        },
+        {
+          "name": "Reject invalid status transition after completion",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"ACTIVE\"\n}" },
+            "url": "{{baseUrl}}/api/rentals/{{rentalId}}/status"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status is 409', () => pm.response.to.have.status(409));"
+          ] } }]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "ownerEmail", "value": "owner@example.com" },
+    { "key": "ownerPassword", "value": "password123", "type": "secret" },
+    { "key": "ownerToken", "value": "", "type": "secret" },
+    { "key": "propertyId", "value": "1" },
+    { "key": "roomId", "value": "1" },
+    { "key": "memberId", "value": "2" },
+    { "key": "rentalId", "value": "" },
+    { "key": "startDate", "value": "2026-09-10" },
+    { "key": "endDate", "value": "2027-09-09" }
+  ]
+}

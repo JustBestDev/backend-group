@@ -1,0 +1,23 @@
+$kind: collection
+description: Rental API tests. Prepare an APPROVED/AVAILABLE property owned by ownerEmail and at least one ACTIVE member before running. For INDIVIDUAL_ROOM, also set roomId to an AVAILABLE room.
+variables:
+  baseUrl: http://localhost:3000
+  ownerEmail: owner@example.com
+  ownerPassword: password123
+  ownerToken: ""
+  propertyId: "1"
+  roomId: "1"
+  memberId: "2"
+  rentalId: ""
+  startDate: 2026-09-10
+  endDate: 2027-09-09
+scripts:
+  - type: http:beforeRequest
+    code: pm.variables.replaceIn('{{$isoTimestamp}}');
+    language: text/javascript
+auth:
+  - id: fa40fbfd-cdc2-49eb-b755-73fbe88080bd
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{ownerToken}}"

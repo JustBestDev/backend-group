@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "{{ownerEmail}}",
+      "password": "{{ownerPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Logged-in user is OWNER', () => { pm.expect(json.token).to.be.a('string').and.not.empty; pm.expect(json.user.role).to.eql('OWNER'); });
+      if (json.token) pm.collectionVariables.set('ownerToken', json.token);
+    language: text/javascript
+order: 2000

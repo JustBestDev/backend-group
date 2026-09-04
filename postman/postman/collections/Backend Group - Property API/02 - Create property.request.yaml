@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/properties"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "{{propertyTitle}}",
+      "description": "Property created by the Postman test collection",
+      "propertyType": "CONDO",
+      "rentType": "WHOLE_UNIT",
+      "monthlyRent": 15000,
+      "deposit": 30000,
+      "availableDate": "2026-10-01",
+      "totalBedrooms": 2
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 201', () => pm.response.to.have.status(201));
+      const json = pm.response.json();
+      pm.test('Property is created as PENDING', () => { pm.expect(json.data.id).to.be.a('number'); pm.expect(json.data.publishStatus).to.eql('PENDING'); pm.expect(json.data.rentType).to.eql('WHOLE_UNIT'); });
+      if (json.data?.id) pm.collectionVariables.set('propertyId', json.data.id);
+    language: text/javascript
+order: 3000

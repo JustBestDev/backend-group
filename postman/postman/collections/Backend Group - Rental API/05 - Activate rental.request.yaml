@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/rentals/{{rentalId}}/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "status": "ACTIVE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200', () => pm.response.to.have.status(200));
+      const json = pm.response.json();
+      pm.test('Rental becomes ACTIVE', () => pm.expect(json.data.status).to.eql('ACTIVE'));
+      pm.test('Resource becomes RENTED', () => {
+        if (json.data.roomId) pm.expect(json.data.room.status).to.eql('RENTED');
+        else pm.expect(json.data.property.propertyStatus).to.eql('RENTED');
+      });
+    language: text/javascript
+order: 6000

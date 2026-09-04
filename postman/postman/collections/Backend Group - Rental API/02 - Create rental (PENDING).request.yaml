@@ -1,0 +1,29 @@
+$kind: http-request
+description: 'Whole-unit payload. For INDIVIDUAL_ROOM add: "roomId": {{roomId}}. The property must be APPROVED and AVAILABLE.'
+url: "{{baseUrl}}/api/rentals"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "propertyId": {{propertyId}},
+      "memberIds": [{{memberId}}],
+      "startDate": "{{startDate}}",
+      "endDate": "{{endDate}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 201', () => pm.response.to.have.status(201));
+      const json = pm.response.json();
+      pm.test('Rental starts as PENDING', () => {
+        pm.expect(json.status).to.eql('success');
+        pm.expect(json.data.id).to.be.a('number');
+        pm.expect(json.data.status).to.eql('PENDING');
+        pm.expect(json.data.propertyId).to.eql(Number(pm.collectionVariables.get('propertyId')));
+      });
+      if (json.data?.id) pm.collectionVariables.set('rentalId', json.data.id);
+    language: text/javascript
+order: 3000
