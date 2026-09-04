@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import createError from "http-errors";
 import {
   deleteProfileImageFromCloudinary,
   uploadProfileImageToCloudinary,
@@ -63,6 +64,7 @@ export const findPublicProfileByUserId = async (userId) => {
 };
 
 export const updateProfileByUserId = async (userId, profileData, profileImage) => {
+  const { username, ...profileFields } = profileData;
   const existingProfile = await prisma.profile.findUnique({
     where: {
       userId: Number(userId),
@@ -77,6 +79,13 @@ export const updateProfileByUserId = async (userId, profileData, profileImage) =
     return null;
   }
 
+  if (username) {
+    const usernameOwner = await prisma.user.findUnique({ where: { username } });
+    if (usernameOwner && usernameOwner.id !== Number(userId)) {
+      throw createError(409, "Username already exists");
+    }
+  }
+
   let uploadedImage;
 
   if (profileImage) {
@@ -89,7 +98,8 @@ export const updateProfileByUserId = async (userId, profileData, profileImage) =
         userId: Number(userId),
       },
       data: {
-        ...profileData,
+        ...profileFields,
+        ...(username && { user: { update: { username } } }),
         ...(uploadedImage && { profileImageUrl: uploadedImage.imageUrl }),
       },
       select: profileSelect,
