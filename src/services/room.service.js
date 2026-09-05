@@ -52,10 +52,7 @@ export async function deleteRoomImageService(roomId, imageId, ownerId) {
     throw createError(404, "Room image not found");
   }
 
-  await deleteRoomImageFromCloudinary(
-    image.imageUrl,
-    image.cloudinaryPublicId
-  );
+  await deleteRoomImageFromCloudinary(image.imageUrl, image.cloudinaryPublicId);
 
   await prisma.$transaction(async (tx) => {
     await tx.roomImage.delete({
@@ -151,7 +148,7 @@ export async function createRoomImageService(roomId, ownerId, file) {
 
         return image;
       },
-      { isolationLevel: "Serializable" }
+      { isolationLevel: "Serializable" },
     );
   } catch (error) {
     await deleteUploadedRoomImage(cloudImage.publicId);
@@ -221,6 +218,28 @@ export async function updateRoomService(roomId, body, userId) {
       },
     });
     return updateRoom;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function getRoomService(roomId) {
+  try {
+    const room = await prisma.room.findUnique({
+      where: {
+        id: Number(roomId),
+      },
+      include: {
+        images: true,
+      },
+    });
+    if (!room) {
+      throw createError(401, "Invalid room id");
+    }
+    return room;
   } catch (error) {
     if (error.status) {
       throw error;
