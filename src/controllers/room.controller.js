@@ -3,6 +3,7 @@ import {
   deleteRoomService,
   deleteRoomImageService,
   updateRoomService,
+  getRoomService
 } from "../services/room.service.js";
 import { registerRoomSchema } from "../validations/schema.js";
 
@@ -61,6 +62,16 @@ export const updateRoom = async (req, res, next) => {
     const { id } = req.user;
     const body = registerRoomSchema.parse(req.body);
     const result = await updateRoomService(roomId, body, id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const result = await getRoomService(roomId);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

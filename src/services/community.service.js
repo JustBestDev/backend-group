@@ -54,7 +54,12 @@ export async function getAllCommunitiesService() {
   try {
     const communities = await prisma.communityPost.findMany({
       include: {
-        property: true,
+        property: {
+          include: {
+            images: true,
+            address: true,
+          },
+        },
         creator: {
           select: communityPostCreatorSelect,
         },
