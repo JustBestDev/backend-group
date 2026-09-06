@@ -3,6 +3,16 @@ import { prisma } from "../lib/prisma.js";
 
 const activeRentalStatuses = ["PENDING", "ACTIVE"];
 
+export function activeRentalTargetWhere(propertyId, rentType, roomId) {
+  return {
+    propertyId,
+    status: { in: activeRentalStatuses },
+    ...(rentType === "INDIVIDUAL_ROOM"
+      ? { OR: [{ roomId }, { roomId: null }] }
+      : {}),
+  };
+}
+
 const rentalListInclude = {
   property: {
     select: {
@@ -374,18 +384,11 @@ export async function createRentalService(ownerId, body) {
         }
 
         const conflictingRental = await tx.rental.findFirst({
-          where: {
-            propertyId: property.id,
-            status: { in: activeRentalStatuses },
-            ...(property.rentType === "INDIVIDUAL_ROOM"
-              ? {
-                OR: [
-                  { roomId: room.id },
-                  { roomId: null },
-                ],
-              }
-              : {}),
-          },
+          where: activeRentalTargetWhere(
+            property.id,
+            property.rentType,
+            room?.id,
+          ),
           select: { id: true },
         });
 
