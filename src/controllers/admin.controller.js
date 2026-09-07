@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { updateUserStatusSchema } from "../validations/schema.js";
 import {
   findAllUsers,
+  findUserById,
   findAdminUserById,
   updateUserStatus,
 } from "../services/admin.service.js";
@@ -19,6 +20,33 @@ export const getUsers = async (req, res, next) => {
     return res.status(200).json({
       message: "Users retrieved successfully",
       data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ========================================
+// GET /api/admin/users/:userId
+// Get a user's detail
+// ========================================
+export const getUserById = async (req, res, next) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return next(createError(400, "Invalid user ID"));
+    }
+
+    const user = await findUserById(userId);
+
+    if (!user) {
+      return next(createError(404, "User not found"));
+    }
+
+    return res.status(200).json({
+      message: "User retrieved successfully",
+      data: user,
     });
   } catch (error) {
     next(error);

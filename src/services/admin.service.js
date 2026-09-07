@@ -22,6 +22,38 @@ export const findAllUsers = async () => {
   });
 };
 
+export const findUserById = async (userId) => {
+  return await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      profile: {
+        select: {
+          firstName: true,
+          lastName: true,
+          phone: true,
+          profileImageUrl: true,
+          bio: true,
+          gender: true,
+          birthdate: true,
+          occupation: true,
+          currentAddress: true,
+          isVerified: true,
+        },
+      },
+    },
+  });
+};
+
 export const findAdminUserById = async (userId) => {
   return await prisma.user.findUnique({
     where: {
