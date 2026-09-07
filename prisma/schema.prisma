@@ -92,6 +92,13 @@ enum RentalStatus {
   CANCELLED
 }
 
+enum RentalRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 model User {
   id        Int        @id @default(autoincrement())
   username  String     @unique
@@ -116,8 +123,9 @@ model User {
   conversationMembers ConversationMember[]
   messages            Message[]
 
-  ownedRentals  Rental[]       @relation("RentalOwner")
-  rentalMembers RentalMember[]
+  ownedRentals   Rental[]        @relation("RentalOwner")
+  rentalMembers  RentalMember[]
+  rentalRequests RentalRequest[]
 }
 
 model Profile {
@@ -192,6 +200,7 @@ model Property {
   communityPosts CommunityPost[]
   conversations  Conversation[]
   rentals        Rental[]
+  rentalRequests RentalRequest[]
 
   @@index([deletedAt, publishStatus, createdAt])
 }
@@ -224,8 +233,9 @@ model Room {
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  rentals Rental[]
-  images  RoomImage[]
+  rentals        Rental[]
+  images         RoomImage[]
+  rentalRequests RentalRequest[]
 }
 
 model RoomImage {
@@ -268,8 +278,30 @@ model CommunityPost {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   creator  User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  joinRequests JoinRequest[]
-  members      CommunityMember[]
+  joinRequests   JoinRequest[]
+  members        CommunityMember[]
+  rentalRequests RentalRequest[]
+}
+
+model RentalRequest {
+  id              Int                 @id @default(autoincrement())
+  propertyId      Int
+  roomId          Int?
+  requesterId     Int
+  communityPostId Int?
+  status          RentalRequestStatus @default(PENDING)
+  startDate       DateTime
+  endDate         DateTime?
+  createdAt       DateTime            @default(now())
+  reviewedAt      DateTime?
+
+  property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room          Room?          @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  requester     User           @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  communityPost CommunityPost? @relation(fields: [communityPostId], references: [id], onDelete: SetNull)
+
+  @@index([requesterId, propertyId, roomId, status])
+  @@index([propertyId, status, createdAt])
 }
 
 model JoinRequest {

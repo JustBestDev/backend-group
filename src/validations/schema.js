@@ -224,3 +224,23 @@ export const updateRentalStatusSchema = z
     status: z.enum(["ACTIVE", "COMPLETED", "CANCELLED"]),
   })
   .strict();
+
+export const createRentalRequestSchema = z
+  .object({
+    propertyId: z.coerce.number().int().positive(),
+    roomId: z.coerce.number().int().positive().nullable().optional(),
+    communityPostId: z.coerce.number().int().positive().nullable().optional(),
+    startDate: rentalDateSchema,
+    endDate: rentalDateSchema.nullable().optional(),
+  })
+  .strict()
+  .refine((data) => !data.endDate || data.endDate > data.startDate, {
+    message: "endDate must be later than startDate",
+    path: ["endDate"],
+  });
+
+export const reviewRentalRequestSchema = z
+  .object({
+    action: z.enum(["ACCEPT", "REJECT"]),
+  })
+  .strict();
