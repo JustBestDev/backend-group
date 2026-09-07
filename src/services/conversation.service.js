@@ -1,5 +1,31 @@
 import { prisma } from "../lib/prisma.js";
 
+const conversationUserInclude = {
+  user: {
+    select: {
+      id: true, username: true, role: true, status: true,
+      profile: { select: { firstName: true, lastName: true, profileImageUrl: true } },
+    },
+  },
+};
+
+export const findActiveAdmin = () => prisma.user.findFirst({
+  where: { role: "ADMIN", status: "ACTIVE" }, select: { id: true }, orderBy: { id: "asc" },
+});
+
+export const findExistingSupportConversation = (ownerId, adminId) => prisma.conversation.findFirst({
+  where: { propertyId: null, AND: [
+    { members: { some: { userId: Number(ownerId) } } },
+    { members: { some: { userId: Number(adminId) } } },
+  ] },
+  include: { property: true, members: { include: conversationUserInclude } },
+});
+
+export const createSupportConversation = (ownerId, adminId) => prisma.conversation.create({
+  data: { members: { create: [{ userId: Number(ownerId) }, { userId: Number(adminId) }] } },
+  include: { property: true, members: { include: conversationUserInclude } },
+});
+
 // ==============================
 // PROPERTY
 // ==============================

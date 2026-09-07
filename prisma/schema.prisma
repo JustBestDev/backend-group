@@ -303,11 +303,11 @@ model CommunityMember {
 
 model Conversation {
   id         Int      @id @default(autoincrement())
-  propertyId Int
+  propertyId Int?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   members  ConversationMember[]
   messages Message[]
