@@ -16,7 +16,23 @@ import {
   countConversationMessages,
   createConversationMessage,
   markMessagesAsRead,
+  findActiveAdmin,
+  findExistingSupportConversation,
+  createSupportConversation,
 } from "../services/conversation.service.js";
+
+export const createAdminSupportConversation = async (req, res, next) => {
+  try {
+    const admin = await findActiveAdmin();
+    if (!admin) return next(createError(503, "No active administrator is available"));
+    const existing = await findExistingSupportConversation(req.user.id, admin.id);
+    if (existing) return res.status(200).json({ message: "Support conversation already exists", conversation: existing });
+    const conversation = await createSupportConversation(req.user.id, admin.id);
+    return res.status(201).json({ message: "Support conversation created successfully", conversation });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ==============================
 // CREATE CONVERSATION

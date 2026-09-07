@@ -1,6 +1,7 @@
 import express from "express";
 
 import { authenticate } from "../middlewares/auth.middleware.js";
+import { allowRoles } from "../middlewares/role.middleware.js";
 
 import {
   createNewConversation,
@@ -9,6 +10,7 @@ import {
   getConversationMessages,
   sendConversationMessage,
   readConversationMessages,
+  createAdminSupportConversation,
 } from "../controllers/conversation.controller.js";
 
 const router = express.Router();
@@ -27,6 +29,8 @@ router.post(
   "/",
   createNewConversation
 );
+
+router.post("/support", allowRoles("OWNER"), createAdminSupportConversation);
 
 // GET /api/conversations/:conversationId/messages
 router.get(
