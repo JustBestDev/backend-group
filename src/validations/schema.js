@@ -123,7 +123,7 @@ export const createPropertySchema = z
       .transform((value) => new Date(value))
       .nullable()
       .optional(),
-    totalBedrooms: z.coerce.number().int().nonnegative().nullable().optional(),
+    totalBedrooms: z.coerce.number().int().min(1, "totalBedrooms must be at least 1"),
   })
   .strict();
 
