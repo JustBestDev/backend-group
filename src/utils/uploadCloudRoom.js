@@ -46,8 +46,6 @@ export async function validateRoomImageType(req, res, next) {
     if (!req.file?.buffer) {
       throw createError(400, "Room image is required");
     }
-
-    const detectedType = await fileTypeFromBuffer(req.file.buffer);
     const allowedMimeTypes = [
       "image/jpeg",
       "image/png",
@@ -55,13 +53,10 @@ export async function validateRoomImageType(req, res, next) {
       "image/gif",
     ];
 
+    const detectedType = await fileTypeFromBuffer(req.file.buffer);
     if (!detectedType || !allowedMimeTypes.includes(detectedType.mime)) {
-      throw createError(
-        400,
-        "Only JPEG, PNG, WebP, and GIF images are allowed"
-      );
+      throw createError(400, "Only JPEG, PNG, WebP, and GIF images are allowed");
     }
-
     req.file.detectedMimeType = detectedType.mime;
     req.file.detectedExtension = detectedType.ext;
     next();

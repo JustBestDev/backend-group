@@ -369,6 +369,7 @@ export async function getMyPropertiesService(ownerId) {
           },
         },
         rooms: {
+          include: { images: { orderBy: { createdAt: "asc" }, take: 1 } },
           orderBy: {
             createdAt: "asc",
           },
@@ -411,6 +412,7 @@ export async function getPropertyByIdService(propertyId, viewerId) {
           },
         },
         rooms: {
+          include: { images: { orderBy: { createdAt: "asc" }, take: 1 } },
           orderBy: {
             createdAt: "asc",
           },
@@ -502,6 +504,7 @@ export async function updatePropertyService(propertyId, ownerId, body) {
       },
       select: {
         ownerId: true,
+        _count: { select: { rooms: true } },
       },
     });
 
@@ -511,6 +514,10 @@ export async function updatePropertyService(propertyId, ownerId, body) {
 
     if (property.ownerId !== Number(ownerId)) {
       throw createError(403, "You are not the owner of this property");
+    }
+
+    if (body.totalBedrooms !== undefined && body.totalBedrooms < property._count.rooms) {
+      throw createError(409, `Total bedrooms cannot be less than the ${property._count.rooms} existing rooms`);
     }
 
     return await prisma.property.update({
@@ -730,32 +737,49 @@ export async function getRoomPropertyById(propertyId) {
 
 export async function createRoomPropertyById(propertyId, userId, body) {
   try {
-    const property = await prisma.property.findFirst({
-      where: {
-        id: Number(propertyId),
-        deletedAt: null,
-      },
-      include: {
-        rooms: true,
-      },
-    });
-    if (!property) {
-      throw createError(400, "Property not found");
-    }
-    if (property.ownerId !== userId) {
-      throw createError(400, "You are not the owner of this property");
+    const parsedPropertyId = Number(propertyId);
+    if (!Number.isInteger(parsedPropertyId) || parsedPropertyId < 1) {
+      throw createError(400, "Invalid property ID");
     }
 
-    const createRoom = await prisma.room.create({
+    const createRoom = await prisma.$transaction(async (tx) => {
+    const property = await tx.property.findFirst({
+      where: {
+        id: parsedPropertyId,
+        deletedAt: null,
+      },
+      select: { ownerId: true, totalBedrooms: true, _count: { select: { rooms: true } } },
+    });
+    if (!property) {
+      throw createError(404, "Property not found");
+    }
+    if (property.ownerId !== Number(userId)) {
+      throw createError(403, "You are not the owner of this property");
+    }
+    if (!property.totalBedrooms || property.totalBedrooms < 1) {
+      throw createError(409, "Set total bedrooms before adding rooms");
+    }
+    if (property._count.rooms >= property.totalBedrooms) {
+      throw createError(409, `Room limit reached (${property.totalBedrooms})`);
+    }
+
+    const room = await tx.room.create({
       data: {
         roomName: body.roomName,
         description: body.description,
         monthlyRent: body.monthlyRent,
         status: body.status || "AVAILABLE",
         capacity: body.capacity,
-        propertyId: Number(propertyId),
+        propertyId: parsedPropertyId,
       },
     });
+
+    await tx.property.update({
+      where: { id: parsedPropertyId },
+      data: { publishStatus: "PENDING", rejectReason: null },
+    });
+    return room;
+    }, { isolationLevel: "Serializable" });
 
     //TODO: room มีเชื่อม rental ด้วยไม่แน่ใจมันคืออะไรลองมาเช็คอีกที
 

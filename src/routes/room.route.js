@@ -4,7 +4,8 @@ import {
   deleteRoom,
   deleteRoomImage,
   updateRoom,
-  getRoom
+  getRoom,
+  replaceRoomImage,
 } from "../controllers/room.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
@@ -26,6 +27,14 @@ roomRoute.post(
   uploadRoomImage,
   validateRoomImageType,
   createRoomImage
+);
+roomRoute.put(
+  "/:roomId/image",
+  authenticate,
+  allowRoles("OWNER"),
+  uploadRoomImage,
+  validateRoomImageType,
+  replaceRoomImage
 );
 roomRoute.delete("/:roomId/images/:imageId", authenticate, allowRoles("OWNER"), deleteRoomImage);
 

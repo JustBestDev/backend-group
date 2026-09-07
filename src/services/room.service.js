@@ -129,14 +129,12 @@ export async function createRoomImageService(roomId, ownerId, file) {
           throw createError(409, "This room already has an image");
         }
 
-        const image = await tx.roomImage.create({
-          data: {
+        const image = await tx.roomImage.create({ data: {
             roomId: parsedRoomId,
             imageUrl: cloudImage.imageUrl,
             cloudinaryPublicId: cloudImage.publicId,
             isCover: true,
-          },
-        });
+          } });
 
         await tx.property.update({
           where: { id: room.propertyId },
@@ -150,6 +148,56 @@ export async function createRoomImageService(roomId, ownerId, file) {
       },
       { isolationLevel: "Serializable" },
     );
+  } catch (error) {
+    await deleteUploadedRoomImage(cloudImage.publicId);
+    if (error.status) throw error;
+    throw createError(500, error.message);
+  }
+}
+
+export async function replaceRoomImageService(roomId, ownerId, file) {
+  const parsedRoomId = Number(roomId);
+  if (!Number.isInteger(parsedRoomId) || parsedRoomId < 1) {
+    throw createError(400, "Invalid room ID");
+  }
+  if (!file) throw createError(400, "Room image is required");
+
+  const room = await prisma.room.findFirst({
+    where: { id: parsedRoomId, property: { is: { deletedAt: null } } },
+    select: {
+      propertyId: true,
+      property: { select: { ownerId: true } },
+      images: true,
+    },
+  });
+  if (!room) throw createError(404, "Room not found");
+  if (room.property.ownerId !== Number(ownerId)) {
+    throw createError(403, "You are not the owner of this room");
+  }
+
+  const cloudImage = await uploadRoomImageToCloudinary(file, parsedRoomId);
+  try {
+    const newImage = await prisma.$transaction(async (tx) => {
+      await tx.roomImage.deleteMany({ where: { roomId: parsedRoomId } });
+      const image = await tx.roomImage.create({
+        data: {
+          roomId: parsedRoomId,
+          imageUrl: cloudImage.imageUrl,
+          cloudinaryPublicId: cloudImage.publicId,
+          isCover: true,
+        },
+      });
+      await tx.property.update({
+        where: { id: room.propertyId },
+        data: { publishStatus: "PENDING", rejectReason: null },
+      });
+      return image;
+    });
+
+    await Promise.all(room.images.map((image) =>
+      deleteRoomImageFromCloudinary(image.imageUrl, image.cloudinaryPublicId).catch(() => null)
+    ));
+    return newImage;
   } catch (error) {
     await deleteUploadedRoomImage(cloudImage.publicId);
     if (error.status) throw error;
@@ -205,17 +253,22 @@ export async function updateRoomService(roomId, body, userId) {
       throw createError(401, "You are not the owner");
     }
 
-    const updateRoom = await prisma.room.update({
-      where: {
-        id: Number(roomId),
-      },
-      data: {
-        roomName: body.roomName,
-        description: body.description,
-        monthlyRent: body.monthlyRent,
-        status: body.status,
-        capacity: body.capacity,
-      },
+    const updateRoom = await prisma.$transaction(async (tx) => {
+      const updated = await tx.room.update({
+        where: { id: Number(roomId) },
+        data: {
+          roomName: body.roomName,
+          description: body.description,
+          monthlyRent: body.monthlyRent,
+          status: body.status,
+          capacity: body.capacity,
+        },
+      });
+      await tx.property.update({
+        where: { id: room.propertyId },
+        data: { publishStatus: "PENDING", rejectReason: null },
+      });
+      return updated;
     });
     return updateRoom;
   } catch (error) {

@@ -3,7 +3,8 @@ import {
   deleteRoomService,
   deleteRoomImageService,
   updateRoomService,
-  getRoomService
+  getRoomService,
+  replaceRoomImageService,
 } from "../services/room.service.js";
 import { registerRoomSchema } from "../validations/schema.js";
 
@@ -36,6 +37,19 @@ export const createRoomImage = async (req, res, next) => {
     return res.status(201).json({
       status: "success",
       message: "Room image uploaded successfully",
+      data: image,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const replaceRoomImage = async (req, res, next) => {
+  try {
+    const image = await replaceRoomImageService(req.params.roomId, req.user.id, req.file);
+    return res.status(200).json({
+      status: "success",
+      message: "Room image replaced successfully",
       data: image,
     });
   } catch (error) {
