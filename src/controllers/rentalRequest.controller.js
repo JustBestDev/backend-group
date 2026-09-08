@@ -2,6 +2,8 @@ import {
   createRentalRequestService,
   getMyRentalRequestsService,
   getOwnerRentalRequestsService,
+  getOwnerUnreadRentalRequestCountService,
+  markOwnerRentalRequestsViewedService,
   reviewRentalRequestService,
 } from "../services/rentalRequest.service.js";
 import {
@@ -47,6 +49,24 @@ export async function getOwnerRentalRequests(req, res, next) {
       message: "Rental requests retrieved successfully",
       data: rentalRequests,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getOwnerUnreadRentalRequestCount(req, res, next) {
+  try {
+    const count = await getOwnerUnreadRentalRequestCountService(req.user.id);
+    return res.status(200).json({ status: "success", data: { count } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function markOwnerRentalRequestsViewed(req, res, next) {
+  try {
+    const result = await markOwnerRentalRequestsViewedService(req.user.id);
+    return res.status(200).json({ status: "success", data: { count: result.count } });
   } catch (error) {
     next(error);
   }

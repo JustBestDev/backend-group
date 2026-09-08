@@ -145,7 +145,7 @@ export async function deletePropertyImageService(propertyId, imageId, ownerId) {
 
     await tx.property.update({
       where: { id: parsedPropertyId },
-      data: { publishStatus: "PENDING", rejectReason: null },
+      data: { publishStatus: "PENDING", rejectReason: null, adminViewedAt: null },
     });
   });
 
@@ -226,7 +226,7 @@ export async function createPropertyImagesService(propertyId, ownerId, files) {
 
         await tx.property.update({
           where: { id: parsedPropertyId },
-          data: { publishStatus: "PENDING", rejectReason: null },
+          data: { publishStatus: "PENDING", rejectReason: null, adminViewedAt: null },
         });
 
         return createdImages;
@@ -527,6 +527,7 @@ export async function updatePropertyService(propertyId, ownerId, body) {
       data: {
         ...body,
         publishStatus: "PENDING",
+        adminViewedAt: null,
         rejectReason: null,
       },
       include: {
@@ -585,7 +586,7 @@ export async function updatePropertyAddressService(propertyId, ownerId, body) {
       });
       await tx.property.update({
         where: { id: parsedPropertyId },
-        data: { publishStatus: "PENDING", rejectReason: null },
+        data: { publishStatus: "PENDING", rejectReason: null, adminViewedAt: null },
       });
       return address;
     });
@@ -648,7 +649,7 @@ export async function createPropertyAddressService(propertyId, ownerId, body) {
       });
       await tx.property.update({
         where: { id: parsedPropertyId },
-        data: { publishStatus: "PENDING", rejectReason: null },
+        data: { publishStatus: "PENDING", rejectReason: null, adminViewedAt: null },
       });
       return address;
     });
@@ -776,7 +777,7 @@ export async function createRoomPropertyById(propertyId, userId, body) {
 
     await tx.property.update({
       where: { id: parsedPropertyId },
-      data: { publishStatus: "PENDING", rejectReason: null },
+      data: { publishStatus: "PENDING", rejectReason: null, adminViewedAt: null },
     });
     return room;
     }, { isolationLevel: "Serializable" });

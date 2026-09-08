@@ -263,6 +263,17 @@ export const findConversationsByUserId = async (
             createdAt: true,
           },
         },
+
+        _count: {
+          select: {
+            messages: {
+              where: {
+                isRead: false,
+                senderId: { not: Number(userId) },
+              },
+            },
+          },
+        },
       },
 
       orderBy: {
@@ -270,8 +281,19 @@ export const findConversationsByUserId = async (
       },
     });
 
-  return conversations;
+  return conversations.map(({ _count, ...conversation }) => ({
+    ...conversation,
+    unreadCount: _count.messages,
+  }));
 };
+
+export const countUnreadMessagesByUserId = (userId) => prisma.message.count({
+  where: {
+    isRead: false,
+    senderId: { not: Number(userId) },
+    conversation: { members: { some: { userId: Number(userId) } } },
+  },
+});
 
 // ดู Conversation รายการเดียวและตรวจว่า User เป็นสมาชิกด้วย
 export const findConversationByIdAndUserId =

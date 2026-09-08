@@ -214,6 +214,42 @@ export const getOwnerApplications = async (req, res, next) => {
   }
 };
 
+export const getAdminUnreadCounts = async (req, res, next) => {
+  try {
+    const [ownerApplications, properties] = await Promise.all([
+      prisma.ownerApplication.count({ where: { status: "PENDING", adminViewedAt: null } }),
+      prisma.property.count({ where: { publishStatus: "PENDING", adminViewedAt: null, deletedAt: null } }),
+    ]);
+    return res.status(200).json({ data: { ownerApplications, properties } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const markOwnerApplicationsViewed = async (req, res, next) => {
+  try {
+    const result = await prisma.ownerApplication.updateMany({
+      where: { status: "PENDING", adminViewedAt: null },
+      data: { adminViewedAt: new Date() },
+    });
+    return res.status(200).json({ data: { count: result.count } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const markPropertiesViewed = async (req, res, next) => {
+  try {
+    const result = await prisma.property.updateMany({
+      where: { publishStatus: "PENDING", adminViewedAt: null, deletedAt: null },
+      data: { adminViewedAt: new Date() },
+    });
+    return res.status(200).json({ data: { count: result.count } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ========================================
 // GET /api/admin/owner-applications/:applicationId
 // ดูรายละเอียดคำขอสมัคร Owner

@@ -19,6 +19,7 @@ import {
   findActiveAdmin,
   findExistingSupportConversation,
   createSupportConversation,
+  countUnreadMessagesByUserId,
 } from "../services/conversation.service.js";
 
 export const createAdminSupportConversation = async (req, res, next) => {
@@ -204,6 +205,15 @@ export const getMyConversations = async (
     return res.status(200).json({
       conversations,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUnreadMessageCount = async (req, res, next) => {
+  try {
+    const count = await countUnreadMessagesByUserId(req.user.id);
+    return res.status(200).json({ data: { count } });
   } catch (error) {
     next(error);
   }

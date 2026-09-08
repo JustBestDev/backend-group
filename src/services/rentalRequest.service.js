@@ -134,6 +134,26 @@ export async function getOwnerRentalRequestsService(ownerId) {
   }
 }
 
+export async function getOwnerUnreadRentalRequestCountService(ownerId) {
+  return prisma.rentalRequest.count({
+    where: {
+      property: { ownerId: Number(ownerId) },
+      ownerViewedAt: null,
+      status: "PENDING",
+    },
+  });
+}
+
+export async function markOwnerRentalRequestsViewedService(ownerId) {
+  return prisma.rentalRequest.updateMany({
+    where: {
+      property: { ownerId: Number(ownerId) },
+      ownerViewedAt: null,
+    },
+    data: { ownerViewedAt: new Date() },
+  });
+}
+
 export async function reviewRentalRequestService(
   requestId,
   ownerId,
