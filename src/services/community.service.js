@@ -58,6 +58,7 @@ export async function getAllCommunitiesService() {
           include: {
             images: true,
             address: true,
+            rooms: true,
           },
         },
         creator: {
