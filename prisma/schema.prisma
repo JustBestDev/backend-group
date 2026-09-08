@@ -155,6 +155,7 @@ model OwnerApplication {
   rejectReason String?
   createdAt    DateTime          @default(now())
   reviewedAt   DateTime?
+  adminViewedAt DateTime?
 
   user       User                       @relation("OwnerApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User?                      @relation("OwnerApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -190,6 +191,7 @@ model Property {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
+  adminViewedAt  DateTime?
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -294,6 +296,7 @@ model RentalRequest {
   endDate         DateTime?
   createdAt       DateTime            @default(now())
   reviewedAt      DateTime?
+  ownerViewedAt   DateTime?
 
   property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   room          Room?          @relation(fields: [roomId], references: [id], onDelete: SetNull)

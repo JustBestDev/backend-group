@@ -14,6 +14,9 @@ import {
   getAdminProperties,
   getAdminPropertyById,
   reviewProperty,
+  getAdminUnreadCounts,
+  markOwnerApplicationsViewed,
+  markPropertiesViewed,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -52,6 +55,8 @@ router.get(
   getAdminDashboard
 );
 
+router.get("/notifications/unread-counts", getAdminUnreadCounts);
+
 // ================================
 // OWNER APPLICATION
 // ================================
@@ -61,6 +66,8 @@ router.get(
   "/owner-applications",
   getOwnerApplications
 );
+
+router.patch("/owner-applications/viewed", markOwnerApplicationsViewed);
 
 // ดูคำขอสมัคร Owner รายการเดียว
 router.get(
@@ -83,6 +90,8 @@ router.get(
   "/properties",
   getAdminProperties
 );
+
+router.patch("/properties/viewed", markPropertiesViewed);
 
 // ดูรายละเอียดประกาศ
 router.get(

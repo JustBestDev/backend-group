@@ -11,6 +11,7 @@ import {
   sendConversationMessage,
   readConversationMessages,
   createAdminSupportConversation,
+  getUnreadMessageCount,
 } from "../controllers/conversation.controller.js";
 
 const router = express.Router();
@@ -23,6 +24,8 @@ router.get(
   "/",
   getMyConversations
 );
+
+router.get("/unread-count", getUnreadMessageCount);
 
 // POST /api/conversations
 router.post(

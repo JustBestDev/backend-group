@@ -136,6 +136,7 @@ export const resubmitCurrentUserOwnerApplicationDocuments = async (userId, files
           rejectReason: null,
           reviewedAt: null,
           reviewedById: null,
+          adminViewedAt: null,
         },
       });
       if (claimed.count !== 1) {
