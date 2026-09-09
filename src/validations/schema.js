@@ -104,6 +104,26 @@ export const registerRoomSchema = z.object({
   capacity: z.coerce.number().int().positive().optional(),
 }).strict();
 
+const uniquePositiveIds = z
+  .array(z.coerce.number().int().positive())
+  .refine((ids) => new Set(ids).size === ids.length, {
+    message: "IDs must not contain duplicates",
+  });
+
+const propertyHouseRulesSchema = z
+  .array(
+    z
+      .object({
+        houseRuleId: z.coerce.number().int().positive(),
+        value: z.string().max(191).nullable().optional(),
+      })
+      .strict(),
+  )
+  .refine(
+    (rules) => new Set(rules.map(({ houseRuleId }) => houseRuleId)).size === rules.length,
+    { message: "houseRuleId must not contain duplicates" },
+  );
+
 export const createPropertySchema = z
   .object({
     title: z.string().trim().min(1, "title is required"),
@@ -124,6 +144,8 @@ export const createPropertySchema = z
       .nullable()
       .optional(),
     totalBedrooms: z.coerce.number().int().min(1, "totalBedrooms must be at least 1"),
+    amenityIds: uniquePositiveIds.optional(),
+    houseRules: propertyHouseRulesSchema.optional(),
   })
   .strict();
 

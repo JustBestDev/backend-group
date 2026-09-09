@@ -71,6 +71,49 @@ const propertyOwnerSelect = {
   },
 };
 
+const propertyRelationsInclude = {
+  amenities: {
+    select: { amenity: { select: { id: true, code: true, name: true } } },
+    orderBy: { amenityId: "asc" },
+  },
+  houseRules: {
+    select: {
+      value: true,
+      houseRule: { select: { id: true, code: true, name: true } },
+    },
+    orderBy: { houseRuleId: "asc" },
+  },
+};
+
+function normalizePropertyRelations(property) {
+  const { amenities, houseRules, ...rest } = property;
+  return {
+    ...rest,
+    amenities: amenities.map(({ amenity }) => amenity),
+    houseRules: houseRules.map(({ houseRule, value }) => ({ ...houseRule, value })),
+  };
+}
+
+async function validatePropertyRelations(tx, amenityIds, houseRules) {
+  const [amenityCount, houseRuleCount] = await Promise.all([
+    amenityIds === undefined
+      ? null
+      : tx.amenity.count({ where: { id: { in: amenityIds } } }),
+    houseRules === undefined
+      ? null
+      : tx.houseRule.count({
+        where: { id: { in: houseRules.map(({ houseRuleId }) => houseRuleId) } },
+      }),
+  ]);
+
+  if (amenityCount !== null && amenityCount !== amenityIds.length) {
+    throw createError(400, "One or more amenity IDs are invalid");
+  }
+  if (houseRuleCount !== null && houseRuleCount !== houseRules.length) {
+    throw createError(400, "One or more house rule IDs are invalid");
+  }
+}
+
 export async function deletePropertyImageService(propertyId, imageId, ownerId) {
   const parsedPropertyId = Number(propertyId);
   const parsedImageId = Number(imageId);
@@ -417,6 +460,7 @@ export async function getPropertyByIdService(propertyId, viewerId) {
             createdAt: "asc",
           },
         },
+        ...propertyRelationsInclude,
       },
     });
 
@@ -438,7 +482,7 @@ export async function getPropertyByIdService(propertyId, viewerId) {
       if (!canView) throw createError(404, "Property not found");
     }
 
-    return property;
+    return normalizePropertyRelations(property);
   } catch (error) {
     if (error.status) {
       throw error;
@@ -520,22 +564,47 @@ export async function updatePropertyService(propertyId, ownerId, body) {
       throw createError(409, `Total bedrooms cannot be less than the ${property._count.rooms} existing rooms`);
     }
 
-    return await prisma.property.update({
-      where: {
-        id: parsedPropertyId,
-      },
-      data: {
-        ...body,
-        publishStatus: "PENDING",
-        adminViewedAt: null,
-        rejectReason: null,
-      },
-      include: {
-        address: true,
-        images: true,
-        rooms: true,
-      },
+    const { amenityIds, houseRules, ...propertyData } = body;
+    const updated = await prisma.$transaction(async (tx) => {
+      await validatePropertyRelations(tx, amenityIds, houseRules);
+
+      return tx.property.update({
+        where: { id: parsedPropertyId },
+        data: {
+          ...propertyData,
+          ...(amenityIds !== undefined
+            ? {
+              amenities: {
+                deleteMany: {},
+                create: amenityIds.map((amenityId) => ({ amenityId })),
+              },
+            }
+            : {}),
+          ...(houseRules !== undefined
+            ? {
+              houseRules: {
+                deleteMany: {},
+                create: houseRules.map(({ houseRuleId, value }) => ({
+                  houseRuleId,
+                  value,
+                })),
+              },
+            }
+            : {}),
+          publishStatus: "PENDING",
+          adminViewedAt: null,
+          rejectReason: null,
+        },
+        include: {
+          address: true,
+          images: true,
+          rooms: true,
+          ...propertyRelationsInclude,
+        },
+      });
     });
+
+    return normalizePropertyRelations(updated);
   } catch (error) {
     if (error.status) {
       throw error;
@@ -663,28 +732,49 @@ export async function createPropertyAddressService(propertyId, ownerId, body) {
 
 export async function createPropertyService(ownerId, body) {
   try {
-    return await prisma.property.create({
-      data: {
-        ownerId: Number(ownerId),
-        title: body.title,
-        description: body.description,
-        propertyType: body.propertyType,
-        rentType: body.rentType,
-        monthlyRent: body.monthlyRent,
-        deposit: body.deposit,
-        availableDate: body.availableDate,
-        totalBedrooms: body.totalBedrooms,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-          },
+    const { amenityIds, houseRules } = body;
+    const property = await prisma.$transaction(async (tx) => {
+      await validatePropertyRelations(tx, amenityIds, houseRules);
+
+      return tx.property.create({
+        data: {
+          ownerId: Number(ownerId),
+          title: body.title,
+          description: body.description,
+          propertyType: body.propertyType,
+          rentType: body.rentType,
+          monthlyRent: body.monthlyRent,
+          deposit: body.deposit,
+          availableDate: body.availableDate,
+          totalBedrooms: body.totalBedrooms,
+          ...(amenityIds?.length
+            ? { amenities: { create: amenityIds.map((amenityId) => ({ amenityId })) } }
+            : {}),
+          ...(houseRules?.length
+            ? {
+              houseRules: {
+                create: houseRules.map(({ houseRuleId, value }) => ({
+                  houseRuleId,
+                  value,
+                })),
+              },
+            }
+            : {}),
         },
-      },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+            },
+          },
+          ...propertyRelationsInclude,
+        },
+      });
     });
+
+    return normalizePropertyRelations(property);
   } catch (error) {
     if (error.status) {
       throw error;

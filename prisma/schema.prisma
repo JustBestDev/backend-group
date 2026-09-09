@@ -198,6 +198,8 @@ model Property {
   address PropertyAddress?
   rooms   Room[]
   images  PropertyImage[]
+  amenities  PropertyAmenity[]
+  houseRules PropertyHouseRule[]
 
   communityPosts CommunityPost[]
   conversations  Conversation[]
@@ -205,6 +207,41 @@ model Property {
   rentalRequests RentalRequest[]
 
   @@index([deletedAt, publishStatus, createdAt])
+}
+
+model Amenity {
+  id         Int               @id @default(autoincrement())
+  code       String            @unique
+  name       String
+  properties PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId Int
+  amenityId  Int
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+}
+
+model HouseRule {
+  id         Int                 @id @default(autoincrement())
+  code       String              @unique
+  name       String
+  properties PropertyHouseRule[]
+}
+
+model PropertyHouseRule {
+  propertyId  Int
+  houseRuleId Int
+  value       String?
+
+  property  Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  houseRule HouseRule @relation(fields: [houseRuleId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, houseRuleId])
 }
 
 model PropertyAddress {

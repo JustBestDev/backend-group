@@ -11,6 +11,7 @@ import conversationRoute from "./routes/conversation.route.js";
 import rentalRoute from "./routes/rental.route.js";
 import rentalRequestRoute from "./routes/rentalRequest.route.js";
 import adminRoute from "./routes/admin.route.js";
+import catalogRoute from "./routes/catalog.route.js";
 
 import { partNotFound } from "./middlewares/pathNotFound.middleware.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -45,6 +46,7 @@ app.use("/api/conversations", conversationRoute);
 app.use("/api/rentals", rentalRoute);
 app.use("/api/rental-requests", rentalRequestRoute);
 app.use("/api/admin", adminRoute);
+app.use("/api", catalogRoute);
 
 app.use(partNotFound);
 

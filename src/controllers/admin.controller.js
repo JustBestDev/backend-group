@@ -576,6 +576,19 @@ export const getAdminPropertyById = async (req, res, next) => {
 
         communityPosts: true,
 
+        amenities: {
+          select: { amenity: { select: { id: true, code: true, name: true } } },
+          orderBy: { amenityId: "asc" },
+        },
+
+        houseRules: {
+          select: {
+            value: true,
+            houseRule: { select: { id: true, code: true, name: true } },
+          },
+          orderBy: { houseRuleId: "asc" },
+        },
+
         _count: {
           select: {
             conversations: true,
@@ -589,9 +602,18 @@ export const getAdminPropertyById = async (req, res, next) => {
       return next(createError(404, "Property not found"));
     }
 
+    const { amenities, houseRules, ...propertyData } = property;
+
     return res.status(200).json({
       message: "Property retrieved successfully",
-      data: property,
+      data: {
+        ...propertyData,
+        amenities: amenities.map(({ amenity }) => amenity),
+        houseRules: houseRules.map(({ houseRule, value }) => ({
+          ...houseRule,
+          value,
+        })),
+      },
     });
   } catch (error) {
     next(error);
