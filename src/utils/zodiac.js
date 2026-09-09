@@ -1,17 +1,17 @@
-const ZODIAC_SIGNS = [
-  "ARIES",
-  "TAURUS",
-  "GEMINI",
-  "CANCER",
-  "LEO",
-  "VIRGO",
-  "LIBRA",
-  "SCORPIO",
-  "SAGITTARIUS",
-  "CAPRICORN",
-  "AQUARIUS",
-  "PISCES",
-];
+const ZODIAC_METADATA = {
+  ARIES: { element: "FIRE", modality: "CARDINAL", polarity: "POSITIVE", index: 0 },
+  TAURUS: { element: "EARTH", modality: "FIXED", polarity: "NEGATIVE", index: 1 },
+  GEMINI: { element: "AIR", modality: "MUTABLE", polarity: "POSITIVE", index: 2 },
+  CANCER: { element: "WATER", modality: "CARDINAL", polarity: "NEGATIVE", index: 3 },
+  LEO: { element: "FIRE", modality: "FIXED", polarity: "POSITIVE", index: 4 },
+  VIRGO: { element: "EARTH", modality: "MUTABLE", polarity: "NEGATIVE", index: 5 },
+  LIBRA: { element: "AIR", modality: "CARDINAL", polarity: "POSITIVE", index: 6 },
+  SCORPIO: { element: "WATER", modality: "FIXED", polarity: "NEGATIVE", index: 7 },
+  SAGITTARIUS: { element: "FIRE", modality: "MUTABLE", polarity: "POSITIVE", index: 8 },
+  CAPRICORN: { element: "EARTH", modality: "CARDINAL", polarity: "NEGATIVE", index: 9 },
+  AQUARIUS: { element: "AIR", modality: "FIXED", polarity: "POSITIVE", index: 10 },
+  PISCES: { element: "WATER", modality: "MUTABLE", polarity: "NEGATIVE", index: 11 },
+};
 
 const ZODIAC_BY_MONTH = [
   [20, "CAPRICORN", "AQUARIUS"],
@@ -28,19 +28,27 @@ const ZODIAC_BY_MONTH = [
   [22, "SAGITTARIUS", "CAPRICORN"],
 ];
 
-const COMPATIBILITY_SCORES = [
-  [78, 68, 88, 55, 90, 65, 75, 60, 85, 62, 80, 58],
-  [84, 65, 82, 70, 88, 76, 90, 58, 86, 63, 86],
-  [76, 60, 82, 84, 90, 68, 88, 62, 74, 52],
-  [85, 72, 80, 88, 58, 92, 70, 66, 95],
-  [86, 70, 83, 72, 84, 64, 78, 60],
-  [82, 85, 86, 62, 88, 72, 80],
-  [83, 74, 87, 68, 90, 65],
-  [88, 72, 84, 66, 94],
-  [82, 64, 86, 48],
-  [85, 70, 82],
-  [80, 60],
-  [86],
+const ELEMENT_PAIRS = {
+  "AIR|EARTH": [-12, "Earth and air elements can create tension"],
+  "AIR|FIRE": [12, "Fire and air elements are traditionally complementary"],
+  "EARTH|WATER": [12, "Water and earth elements are traditionally complementary"],
+  "FIRE|WATER": [-12, "Water and fire elements can create tension"],
+};
+
+const SAME_MODALITY = {
+  CARDINAL: [-3, "Both cardinal signs may compete for direction"],
+  FIXED: [-5, "Both fixed signs may be less flexible"],
+  MUTABLE: [1, "Both mutable signs tend to be adaptable"],
+};
+
+const ASPECTS = [
+  [10, "Same-sign conjunction"],
+  [-3, "Adjacent sign relationship"],
+  [12, "Sextile sign relationship"],
+  [-12, "Square sign relationship"],
+  [20, "Trine sign relationship"],
+  [-5, "Quincunx sign relationship"],
+  [-8, "Opposition sign relationship"],
 ];
 
 export function getZodiacSign(birthdate) {
@@ -61,12 +69,63 @@ export function getZodiacSign(birthdate) {
   return day < cutoff ? before : after;
 }
 
-export function getCompatibilityScore(signA, signB) {
-  const indexA = ZODIAC_SIGNS.indexOf(signA);
-  const indexB = ZODIAC_SIGNS.indexOf(signB);
-  if (indexA === -1 || indexB === -1) return null;
+// Astrology-based product heuristic, not a scientific prediction.
+export function getCompatibility(signA, signB) {
+  if (
+    typeof signA !== "string" ||
+    typeof signB !== "string" ||
+    !Object.hasOwn(ZODIAC_METADATA, signA) ||
+    !Object.hasOwn(ZODIAC_METADATA, signB)
+  ) return null;
 
-  const first = Math.min(indexA, indexB);
-  const second = Math.max(indexA, indexB);
-  return COMPATIBILITY_SCORES[first][second - first];
+  const zodiacA = ZODIAC_METADATA[signA];
+  const zodiacB = ZODIAC_METADATA[signB];
+
+  let score = 50;
+  const reasons = [];
+
+  if (zodiacA.element === zodiacB.element) {
+    score += 15;
+    reasons.push(`Same ${zodiacA.element.toLowerCase()} element`);
+  } else {
+    const elementPair = [zodiacA.element, zodiacB.element].sort().join("|");
+    const elementRule = ELEMENT_PAIRS[elementPair];
+    if (elementRule) {
+      score += elementRule[0];
+      reasons.push(elementRule[1]);
+    }
+  }
+
+  if (zodiacA.modality === zodiacB.modality) {
+    const modalityRule = SAME_MODALITY[zodiacA.modality];
+    score += modalityRule[0];
+    reasons.push(modalityRule[1]);
+  } else {
+    score += 5;
+    reasons.push("Different modalities can balance each other");
+  }
+
+  if (zodiacA.polarity === zodiacB.polarity) {
+    score += 5;
+    reasons.push(
+      zodiacA.polarity === "POSITIVE"
+        ? "Shared expressive polarity"
+        : "Shared receptive polarity",
+    );
+  }
+
+  const distance = Math.abs(zodiacA.index - zodiacB.index);
+  const aspectRule = ASPECTS[Math.min(distance, 12 - distance)];
+  score += aspectRule[0];
+  reasons.push(aspectRule[1]);
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    reasons,
+  };
+}
+
+export function getCompatibilityScore(signA, signB) {
+  const compatibility = getCompatibility(signA, signB);
+  return compatibility?.score ?? null;
 }
