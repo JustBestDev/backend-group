@@ -13,6 +13,13 @@ const SEED_EMAILS = [
   "banned@test.local",
   "owner.pending@test.local",
   "owner.rejected@test.local",
+  "zodiac.cancer@test.local",
+  "zodiac.scorpio@test.local",
+  "zodiac.taurus@test.local",
+  "zodiac.capricorn@test.local",
+  "zodiac.gemini@test.local",
+  "zodiac.sagittarius@test.local",
+  "zodiac.unknown@test.local",
 ];
 const PROPERTY_TITLES = [
   "Team Test Condo",
@@ -20,6 +27,11 @@ const PROPERTY_TITLES = [
   "Team Test Rejected Apartment",
   "Team Test Closed Dormitory",
   "Team Test Owner Two House",
+  "Water Sign Roommates",
+  "Calm Earth House",
+  "Mixed Vibes Group",
+  "Birthday Missing Test",
+  "Full Water Community",
 ];
 const IMAGE_BASE = "https://placehold.co/1200x800/png?text=";
 
@@ -106,6 +118,13 @@ async function main() {
     { username: "banned_test", email: "banned@test.local", role: "USER", status: "BANNED", profile: { firstName: "Banned", isVerified: false } },
     { username: "owner_pending", email: "owner.pending@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Pending", lastName: "Applicant", occupation: "Freelancer", isVerified: false } },
     { username: "owner_rejected", email: "owner.rejected@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Rejected", lastName: "Applicant", isVerified: false } },
+    { username: "zodiac_cancer", email: "zodiac.cancer@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Cancer", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-07-10"), occupation: "Designer", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_scorpio", email: "zodiac.scorpio@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Scorpio", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-11-15"), occupation: "Developer", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_taurus", email: "zodiac.taurus@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Taurus", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-05-10"), occupation: "Accountant", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_capricorn", email: "zodiac.capricorn@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Capricorn", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-01-10"), occupation: "Engineer", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_gemini", email: "zodiac.gemini@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Gemini", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-06-10"), occupation: "Marketer", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_sagittarius", email: "zodiac.sagittarius@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Sagittarius", lastName: "Matcher", bio: "Zodiac matching test user", birthdate: date("1998-12-10"), occupation: "Photographer", currentAddress: "Bangkok", isVerified: true } },
+    { username: "zodiac_unknown", email: "zodiac.unknown@test.local", role: "USER", status: "ACTIVE", profile: { firstName: "Unknown", lastName: "Birthday", bio: "Zodiac edge-case user without a birthdate", occupation: "Student", currentAddress: "Bangkok", isVerified: false } },
   ];
 
   const users = {};
@@ -153,6 +172,31 @@ async function main() {
   await prisma.property.create({ data: { ownerId: owner.id, title: PROPERTY_TITLES[3], description: "Approved property closed by its owner.", propertyType: "DORMITORY", rentType: "WHOLE_UNIT", monthlyRent: 14500, totalBedrooms: 2, publishStatus: "APPROVED", propertyStatus: "CLOSED", address: { create: { province: "Chon Buri", district: "Bang Lamung", postcode: "20150" } } } });
   const propertyE = await prisma.property.create({ data: { ownerId: ownerTwo.id, title: PROPERTY_TITLES[4], description: "Secondary owner's approved property for authorization checks.", propertyType: "HOUSE", rentType: "INDIVIDUAL_ROOM", monthlyRent: 7200, deposit: 7200, totalBedrooms: 1, publishStatus: "APPROVED", propertyStatus: "AVAILABLE", address: { create: { province: "Chiang Mai", district: "Mueang Chiang Mai", postcode: "50000", latitude: 18.7883, longitude: 98.9853 } }, images: { create: { imageUrl: `${IMAGE_BASE}Owner+Two+House`, isCover: true } }, rooms: { create: { roomName: "Owner Two Room", description: "Ownership authorization test room", monthlyRent: 7200, status: "AVAILABLE", capacity: 2 } } }, include: { rooms: true } });
 
+  const zodiacScenarios = [
+    { title: PROPERTY_TITLES[5], description: "Very high compatibility community for a Pisces test user.", memberEmails: ["zodiac.cancer@test.local", "zodiac.scorpio@test.local"], status: "OPEN" },
+    { title: PROPERTY_TITLES[6], description: "High compatibility earth-sign community for a Pisces test user.", memberEmails: ["zodiac.taurus@test.local", "zodiac.capricorn@test.local"], status: "OPEN" },
+    { title: PROPERTY_TITLES[7], description: "Lower compatibility mixed-sign community for ranking tests.", memberEmails: ["zodiac.gemini@test.local", "zodiac.sagittarius@test.local"], status: "OPEN" },
+    { title: PROPERTY_TITLES[8], description: "Community with one member whose birthdate is missing.", memberEmails: ["zodiac.cancer@test.local", "zodiac.unknown@test.local"], status: "OPEN" },
+    { title: PROPERTY_TITLES[9], description: "High compatibility community that must not accept more members.", memberEmails: ["zodiac.cancer@test.local", "zodiac.scorpio@test.local"], status: "FULL" },
+  ];
+  const zodiacProperties = [];
+  const zodiacPosts = [];
+  for (const [index, scenario] of zodiacScenarios.entries()) {
+    const property = await prisma.property.create({ data: {
+      ownerId: owner.id, title: scenario.title, description: scenario.description, propertyType: "APARTMENT", rentType: "INDIVIDUAL_ROOM", monthlyRent: 6500 + (index * 500), deposit: 6500 + (index * 500), totalBedrooms: 1, publishStatus: "APPROVED", propertyStatus: "AVAILABLE",
+      address: { create: { province: "Bangkok", district: "Huai Khwang", postcode: "10310" } },
+      rooms: { create: { roomName: `${scenario.title} Room`, description: "Available room for zodiac matching flow tests.", monthlyRent: 6500 + (index * 500), status: "AVAILABLE", capacity: scenario.status === "FULL" ? 2 : 3 } },
+    } });
+    const post = await prisma.communityPost.create({ data: {
+      propertyId: property.id, creatorId: users[scenario.memberEmails[0]].id, title: scenario.title, description: scenario.description, requiredMembers: scenario.status === "FULL" ? 2 : 3, status: scenario.status,
+    } });
+    await prisma.communityMember.createMany({ data: scenario.memberEmails.map((email, memberIndex) => ({
+      communityPostId: post.id, userId: users[email].id, memberRole: memberIndex === 0 ? "CREATOR" : "MEMBER",
+    })) });
+    zodiacProperties.push(property);
+    zodiacPosts.push(post);
+  }
+
   const posts = [];
   for (const data of [
     { propertyId: propertyA.id, creatorId: user.id, title: "Team Test Open Community", description: "Open group looking for one more housemate.", requiredMembers: 3, status: "OPEN" },
@@ -194,15 +238,15 @@ async function main() {
   const counts = await Promise.all([
     prisma.user.count({ where: { email: { in: SEED_EMAILS } } }),
     prisma.property.count({ where: { title: { in: PROPERTY_TITLES }, ownerId: { in: [owner.id, ownerTwo.id] } } }),
-    prisma.room.count({ where: { propertyId: { in: [propertyA.id, propertyE.id] } } }),
-    prisma.communityPost.count({ where: { propertyId: propertyA.id } }),
+    prisma.room.count({ where: { propertyId: { in: [propertyA.id, propertyE.id, ...zodiacProperties.map(({ id }) => id)] } } }),
+    prisma.communityPost.count({ where: { id: { in: [...posts, ...zodiacPosts].map(({ id }) => id) } } }),
     prisma.joinRequest.count({ where: { communityPostId: { in: posts.map(({ id }) => id) } } }),
     prisma.conversation.count({ where: { propertyId: propertyA.id } }),
     prisma.message.count({ where: { conversation: { propertyId: propertyA.id } } }),
     prisma.rental.count({ where: { propertyId: { in: [propertyA.id, propertyE.id] } } }),
   ]);
 
-  console.log(`\nTeam test seed completed.\n\nDEVELOPMENT TEST ACCOUNTS ONLY\nADMIN  admin@test.local\nOWNER  owner@test.local\nOWNER2 owner2@test.local\nUSER   user@test.local\nUSER2  user2@test.local\nSUSPENDED suspended@test.local\nBANNED banned@test.local\n\nPassword:\n${PASSWORD}\n\nPrimary test data:\nOwner: owner@test.local\nProperty: Team Test Condo\nRooms: Room A, Room B, Room C\n\nSeeded:\nUsers: ${counts[0]}\nProperties: ${counts[1]}\nRooms: ${counts[2]}\nCommunity Posts: ${counts[3]}\nJoin Requests: ${counts[4]}\nConversations: ${counts[5]}\nMessages: ${counts[6]}\nRentals: ${counts[7]}\n`);
+  console.log(`\nTeam test seed completed.\n\nDEVELOPMENT TEST ACCOUNTS ONLY\nADMIN  admin@test.local\nOWNER  owner@test.local\nOWNER2 owner2@test.local\nUSER   user@test.local\nUSER2  user2@test.local\nSUSPENDED suspended@test.local\nBANNED banned@test.local\nZODIAC zodiac.{cancer,scorpio,taurus,capricorn,gemini,sagittarius,unknown}@test.local\n\nPassword:\n${PASSWORD}\n\nPrimary test data:\nOwner: owner@test.local\nProperty: Team Test Condo\nRooms: Room A, Room B, Room C\nZodiac test user: user@test.local (Pisces)\n\nSeeded:\nUsers: ${counts[0]}\nProperties: ${counts[1]}\nRooms: ${counts[2]}\nCommunity Posts: ${counts[3]}\nJoin Requests: ${counts[4]}\nConversations: ${counts[5]}\nMessages: ${counts[6]}\nRentals: ${counts[7]}\n`);
 }
 
 main()
