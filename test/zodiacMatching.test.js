@@ -87,14 +87,26 @@ test("averages valid members while skipping missing birthdates and the current u
   assert.equal(result.userZodiac, "PISCES");
   assert.equal(byId.get(1).compatibilityScore, 95);
   assert.equal(byId.get(1).matchedMembers, 2);
+  assert.equal(byId.get(1).members[0].compatibility.score, 95);
+  assert.ok(Array.isArray(byId.get(1).members[0].compatibility.reasons));
+  assert.deepEqual(byId.get(1).compatibilityReasons, [
+    "Same water element",
+    "Different modalities can balance each other",
+    "Shared receptive polarity",
+    "Trine sign relationship",
+  ]);
+  assert.ok(byId.get(1).compatibilityReasons.length <= 4);
   assert.equal(byId.get(2).compatibilityScore, 95);
   assert.equal(byId.get(2).matchedMembers, 1);
   assert.equal(byId.get(2).totalMembers, 2);
+  assert.equal(byId.get(2).members[1].compatibility, null);
   assert.equal(byId.get(3).compatibilityScore, null);
+  assert.deepEqual(byId.get(3).compatibilityReasons, []);
   assert.equal(byId.get(3).matchedMembers, 0);
   assert.equal(byId.get(4).compatibilityScore, 95);
   assert.equal(byId.get(4).isMember, true);
   assert.equal(byId.get(4).matchedMembers, 1);
+  assert.equal(byId.get(4).members[0].compatibility, null);
   assert.equal("birthdate" in byId.get(1).members[0].user.profile, false);
   assert.equal(byId.get(1).members[0].user.profile.zodiac, "CANCER");
 });

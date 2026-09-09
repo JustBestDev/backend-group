@@ -6,7 +6,7 @@ import {
   PublishStatus,
 } from "../../generated/prisma/client.js";
 import {
-  getCompatibilityScore,
+  getCompatibility,
   getZodiacSign,
 } from "../utils/zodiac.js";
 
@@ -169,11 +169,19 @@ export async function getZodiacMatchesService(userId, database = prisma) {
 
     const matches = communities.map((community) => {
       const scores = [];
+      const compatibilityReasons = new Set();
       const members = community.members.map((member) => {
         const zodiac = getZodiacSign(member.user.profile?.birthdate);
-        if (member.user.id !== user.id && zodiac) {
-          const score = getCompatibilityScore(userZodiac, zodiac);
-          if (score !== null) scores.push(score);
+        const compatibility = member.user.id !== user.id && zodiac
+          ? getCompatibility(userZodiac, zodiac)
+          : null;
+
+        if (compatibility) {
+          scores.push(compatibility.score);
+          for (const reason of compatibility.reasons) {
+            if (compatibilityReasons.size === 4) break;
+            compatibilityReasons.add(reason);
+          }
         }
 
         return {
@@ -188,6 +196,7 @@ export async function getZodiacMatchesService(userId, database = prisma) {
                 }
               : null,
           },
+          compatibility,
         };
       });
 
@@ -197,6 +206,7 @@ export async function getZodiacMatchesService(userId, database = prisma) {
         compatibilityScore: scores.length
           ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
           : null,
+        compatibilityReasons: [...compatibilityReasons],
         matchedMembers: scores.length,
         totalMembers: community.members.length,
         isMember: community.members.some((member) => member.user.id === user.id),
