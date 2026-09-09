@@ -34,6 +34,25 @@ const PROPERTY_TITLES = [
   "Full Water Community",
 ];
 const IMAGE_BASE = "https://placehold.co/1200x800/png?text=";
+const AMENITIES = [
+  ["WIFI", "Wi-Fi"],
+  ["AIR_CONDITIONING", "Air conditioning"],
+  ["PARKING", "Parking"],
+  ["WASHING_MACHINE", "Washing machine"],
+  ["REFRIGERATOR", "Refrigerator"],
+  ["ELEVATOR", "Elevator"],
+  ["BALCONY", "Balcony"],
+  ["FITNESS", "Fitness center"],
+  ["SWIMMING_POOL", "Swimming pool"],
+];
+const HOUSE_RULES = [
+  ["PETS_ALLOWED", "Pets allowed"],
+  ["NO_SMOKING", "No smoking"],
+  ["GUESTS_ALLOWED", "Guests allowed"],
+  ["NO_PARTIES", "No parties"],
+  ["COOKING_ALLOWED", "Cooking allowed"],
+  ["QUIET_HOURS", "Quiet hours"],
+];
 
 function assertDevelopmentDatabase() {
   if (process.env.NODE_ENV === "production") {
@@ -107,6 +126,15 @@ async function replaceSeedOwnedData(seedUserIds) {
 async function main() {
   assertDevelopmentDatabase();
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
+
+  await Promise.all([
+    ...AMENITIES.map(([code, name]) =>
+      prisma.amenity.upsert({ where: { code }, update: { name }, create: { code, name } }),
+    ),
+    ...HOUSE_RULES.map(([code, name]) =>
+      prisma.houseRule.upsert({ where: { code }, update: { name }, create: { code, name } }),
+    ),
+  ]);
 
   const userDefinitions = [
     { username: "admin_test", email: "admin@test.local", role: "ADMIN", status: "ACTIVE", profile: { firstName: "Team", lastName: "Admin", phone: "0800000001", bio: "Development administrator", gender: "OTHER", birthdate: date("1990-01-15"), occupation: "Administrator", currentAddress: "Bangkok", isVerified: true } },
