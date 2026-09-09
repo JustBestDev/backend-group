@@ -1,9 +1,14 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
 import {
+  CommunityPostStatus,
   PropertyStatus,
   PublishStatus,
 } from "../../generated/prisma/client.js";
+import {
+  getCompatibilityScore,
+  getZodiacSign,
+} from "../utils/zodiac.js";
 
 const communityPostCreatorSelect = {
   id: true,
@@ -88,6 +93,121 @@ export async function getAllCommunitiesByIdService(postId) {
       },
     });
     return communities;
+  } catch (error) {
+    if (error.status) {
+      throw error;
+    }
+    throw createError(500, error.message);
+  }
+}
+
+export async function getZodiacMatchesService(userId, database = prisma) {
+  try {
+    const user = await database.user.findUnique({
+      where: { id: Number(userId) },
+      select: {
+        id: true,
+        profile: { select: { birthdate: true } },
+      },
+    });
+
+    if (!user) {
+      throw createError(404, "User not found");
+    }
+
+    const userZodiac = getZodiacSign(user.profile?.birthdate);
+    if (!userZodiac) {
+      throw createError(400, "Birthdate is required for zodiac matching");
+    }
+
+    const communities = await database.communityPost.findMany({
+      where: {
+        status: { not: CommunityPostStatus.CLOSED },
+        property: {
+          deletedAt: null,
+          publishStatus: PublishStatus.APPROVED,
+          propertyStatus: PropertyStatus.AVAILABLE,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        requiredMembers: true,
+        status: true,
+        property: {
+          select: {
+            id: true,
+            title: true,
+            monthlyRent: true,
+            rentType: true,
+            propertyType: true,
+            images: { select: { id: true, imageUrl: true, isCover: true } },
+            address: true,
+          },
+        },
+        members: {
+          select: {
+            memberRole: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                profile: {
+                  select: {
+                    firstName: true,
+                    profileImageUrl: true,
+                    birthdate: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const matches = communities.map((community) => {
+      const scores = [];
+      const members = community.members.map((member) => {
+        const zodiac = getZodiacSign(member.user.profile?.birthdate);
+        if (member.user.id !== user.id && zodiac) {
+          const score = getCompatibilityScore(userZodiac, zodiac);
+          if (score !== null) scores.push(score);
+        }
+
+        return {
+          ...member,
+          user: {
+            ...member.user,
+            profile: member.user.profile
+              ? {
+                  firstName: member.user.profile.firstName,
+                  profileImageUrl: member.user.profile.profileImageUrl,
+                  zodiac,
+                }
+              : null,
+          },
+        };
+      });
+
+      return {
+        ...community,
+        members,
+        compatibilityScore: scores.length
+          ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+          : null,
+        matchedMembers: scores.length,
+        totalMembers: community.members.length,
+        isMember: community.members.some((member) => member.user.id === user.id),
+      };
+    });
+
+    matches.sort((a, b) =>
+      (b.compatibilityScore ?? -1) - (a.compatibilityScore ?? -1) || a.id - b.id
+    );
+
+    return { userZodiac, matches };
   } catch (error) {
     if (error.status) {
       throw error;
