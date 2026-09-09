@@ -6,6 +6,7 @@ import {
   getCommunityById,
   getCommunityJoinRequests,
   getCommunityMembers,
+  getZodiacMatches,
   joinRequestCommunityPost,
   updateCommunityPost,
 } from "../controllers/community.controller.js";
@@ -14,6 +15,7 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 const communityRoute = express();
 
 communityRoute.get("/", getAllCommunities);
+communityRoute.get("/zodiac-matches", authenticate, getZodiacMatches);
 communityRoute.get("/:postId", getCommunityById);
 communityRoute.get(
   "/:postId/join-requests",

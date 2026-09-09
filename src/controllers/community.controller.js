@@ -5,6 +5,7 @@ import {
   getAllCommunitiesService,
   getCommunityJoinRequestsService,
   getCommunityMembersService,
+  getZodiacMatchesService,
   joinRequestCommunityPostService,
   updateCommunityPostService,
 } from "../services/community.service.js";
@@ -29,6 +30,16 @@ export const getCommunityById = async (req, res, next) => {
   try {
     const { postId } = req.params;
     const result = await getAllCommunitiesByIdService(postId);
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getZodiacMatches = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const result = await getZodiacMatchesService(id);
     return res.status(200).json(result);
   } catch (error) {
     return next(error);
