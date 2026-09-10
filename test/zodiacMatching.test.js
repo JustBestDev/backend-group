@@ -3,6 +3,9 @@ import test from "node:test";
 
 import { getZodiacMatchesService } from "../src/services/community.service.js";
 
+const getZodiacMatches = (userId, database, explanationGenerator = async () => null) =>
+  getZodiacMatchesService(userId, database, explanationGenerator);
+
 const birthdate = (value) => value && new Date(`${value}T00:00:00.000Z`);
 
 const member = (id, date, memberRole = "MEMBER") => ({
@@ -57,13 +60,13 @@ function makeDatabase({ user = { id: 1, profile: { birthdate: birthdate("1998-03
 
 test("requires an existing user with a valid birthdate", async () => {
   await assert.rejects(
-    getZodiacMatchesService(1, makeDatabase({ user: null })),
+    getZodiacMatches(1, makeDatabase({ user: null })),
     (error) => error.status === 404 && error.message === "User not found",
   );
 
   for (const profile of [null, { birthdate: null }, { birthdate: new Date("invalid") }]) {
     await assert.rejects(
-      getZodiacMatchesService(1, makeDatabase({ user: { id: 1, profile } })),
+      getZodiacMatches(1, makeDatabase({ user: { id: 1, profile } })),
       (error) =>
         error.status === 400 &&
         error.message === "Birthdate is required for zodiac matching",
@@ -81,7 +84,7 @@ test("averages valid members while skipping missing birthdates and the current u
     ],
   });
 
-  const result = await getZodiacMatchesService(1, database);
+  const result = await getZodiacMatches(1, database);
   const byId = new Map(result.matches.map((match) => [match.id, match]));
 
   assert.equal(result.userZodiac, "PISCES");
@@ -121,7 +124,7 @@ test("sorts scores descending, puts null last, breaks ties by id, and retains FU
     ],
   });
 
-  const { matches } = await getZodiacMatchesService(1, database);
+  const { matches } = await getZodiacMatches(1, database);
 
   assert.deepEqual(matches.map(({ id }) => id), [2, 5, 7, 9]);
   assert.equal(matches[0].status, "FULL");
@@ -130,7 +133,7 @@ test("sorts scores descending, puts null last, breaks ties by id, and retains FU
 
 test("queries only eligible properties and excludes CLOSED communities", async () => {
   const database = makeDatabase();
-  await getZodiacMatchesService(1, database);
+  await getZodiacMatches(1, database);
 
   assert.deepEqual(database.queries.communities.where, {
     status: { not: "CLOSED" },
@@ -144,4 +147,48 @@ test("queries only eligible properties and excludes CLOSED communities", async (
     id: true,
     profile: { select: { birthdate: true } },
   });
+});
+
+test("adds cached AI explanations without changing deterministic matching", async () => {
+  const database = makeDatabase({
+    communities: [
+      community(1, [member(2, "1998-07-10")]),
+      community(2, [member(3, "1998-07-10")]),
+    ],
+  });
+  const calls = [];
+  const explanation = {
+    summary: "A potentially comfortable roommate dynamic.",
+    reasons: ["Both may value emotional awareness.", "Different habits can balance daily routines."],
+  };
+
+  const result = await getZodiacMatches(1, database, async (input) => {
+    calls.push(input);
+    return explanation;
+  });
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(Object.keys(calls[0]).sort(), [
+    "compatibilityReasons",
+    "compatibilityScore",
+    "memberZodiacs",
+    "userZodiac",
+  ]);
+  assert.deepEqual(result.matches.map(({ aiExplanation }) => aiExplanation), [
+    explanation,
+    explanation,
+  ]);
+  assert.equal(result.matches[0].compatibilityScore, 95);
+});
+
+test("falls back when AI explanation generation fails", async () => {
+  const database = makeDatabase({
+    communities: [community(1, [member(2, "1998-07-10")])],
+  });
+  const { matches } = await getZodiacMatches(1, database, async () => {
+    throw new Error("OpenAI unavailable");
+  });
+
+  assert.equal(matches[0].aiExplanation, null);
+  assert.ok(matches[0].compatibilityReasons.length > 0);
 });

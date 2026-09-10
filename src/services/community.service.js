@@ -9,6 +9,7 @@ import {
   getCompatibility,
   getZodiacSign,
 } from "../utils/zodiac.js";
+import { generateZodiacExplanation } from "./openai.service.js";
 
 const communityPostCreatorSelect = {
   id: true,
@@ -101,7 +102,11 @@ export async function getAllCommunitiesByIdService(postId) {
   }
 }
 
-export async function getZodiacMatchesService(userId, database = prisma) {
+export async function getZodiacMatchesService(
+  userId,
+  database = prisma,
+  explanationGenerator = generateZodiacExplanation,
+) {
   try {
     const user = await database.user.findUnique({
       where: { id: Number(userId) },
@@ -217,7 +222,42 @@ export async function getZodiacMatchesService(userId, database = prisma) {
       (b.compatibilityScore ?? -1) - (a.compatibilityScore ?? -1) || a.id - b.id
     );
 
-    return { userZodiac, matches };
+    const explanationCache = new Map();
+    const matchesWithExplanations = await Promise.all(
+      matches.map(async (match) => {
+        const memberZodiacs = match.members
+          .filter(({ compatibility }) => compatibility)
+          .map(({ user: member }) => member.profile.zodiac)
+          .sort();
+
+        if (match.compatibilityScore == null || !memberZodiacs.length) {
+          return { ...match, aiExplanation: null };
+        }
+
+        const input = {
+          userZodiac,
+          memberZodiacs,
+          compatibilityScore: match.compatibilityScore,
+          compatibilityReasons: match.compatibilityReasons,
+        };
+        const cacheKey = JSON.stringify(input);
+        if (!explanationCache.has(cacheKey)) {
+          explanationCache.set(
+            cacheKey,
+            Promise.resolve()
+              .then(() => explanationGenerator(input))
+              .catch(() => null),
+          );
+        }
+
+        return {
+          ...match,
+          aiExplanation: await explanationCache.get(cacheKey),
+        };
+      }),
+    );
+
+    return { userZodiac, matches: matchesWithExplanations };
   } catch (error) {
     if (error.status) {
       throw error;
