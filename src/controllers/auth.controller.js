@@ -22,6 +22,7 @@ export const register = async (req, res, next) => {
       username,
       email,
       password,
+      birthdate,
     } = registerSchema.parse(req.body);
 
     const normalizedEmail = email
@@ -58,7 +59,8 @@ export const register = async (req, res, next) => {
     const newUser = await createUser(
       normalizedUsername,
       normalizedEmail,
-      hashedPassword
+      hashedPassword,
+      birthdate
     );
 
     return res.status(201).json({
