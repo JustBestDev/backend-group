@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
+import { activeRentalTargetWhere } from "./rental.service.js";
 import {
   deleteCloudinaryImages,
   deleteImageFromCloudinary,
@@ -482,7 +483,43 @@ export async function getPropertyByIdService(propertyId, viewerId) {
       if (!canView) throw createError(404, "Property not found");
     }
 
-    return normalizePropertyRelations(property);
+    const normalized = normalizePropertyRelations(property);
+
+    if (property.rentType === "WHOLE_UNIT") {
+      const activeRental = await prisma.rental.findFirst({
+        where: activeRentalTargetWhere(parsedPropertyId, "WHOLE_UNIT", null),
+        select: { id: true, status: true, startDate: true, endDate: true },
+      });
+
+      const isWholeUnitUnavailable =
+        property.propertyStatus !== "AVAILABLE" || Boolean(activeRental);
+
+      const rooms = isWholeUnitUnavailable
+        ? (normalized.rooms || []).map((room) => ({
+            ...room,
+            status: activeRental?.status === "PENDING" ? "RESERVED" : "RENTED",
+          }))
+        : normalized.rooms;
+
+      return {
+        ...normalized,
+        rooms,
+        hasActiveRental: Boolean(activeRental),
+        isReserved: activeRental?.status === "PENDING",
+        isRented:
+          activeRental?.status === "ACTIVE" ||
+          property.propertyStatus === "RENTED",
+        activeRental: activeRental
+          ? {
+              status: activeRental.status,
+              startDate: activeRental.startDate,
+              endDate: activeRental.endDate,
+            }
+          : null,
+      };
+    }
+
+    return normalized;
   } catch (error) {
     if (error.status) {
       throw error;

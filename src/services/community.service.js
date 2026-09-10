@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
+import { activeRentalTargetWhere } from "./rental.service.js";
 import {
   CommunityPostStatus,
   PropertyStatus,
@@ -48,11 +49,28 @@ async function ensureCommunityPostPropertyIsAvailable(propertyId) {
     },
     select: {
       id: true,
+      rentType: true,
     },
   });
 
   if (!property) {
     throw createError(404, "Property not found");
+  }
+
+  const activeRental = await prisma.rental.findFirst({
+    where: activeRentalTargetWhere(
+      property.id,
+      property.rentType,
+      null,
+    ),
+    select: { id: true },
+  });
+
+  if (activeRental) {
+    throw createError(
+      409,
+      "Property is currently reserved or rented, and cannot be shared to community",
+    );
   }
 }
 

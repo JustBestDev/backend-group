@@ -3,13 +3,30 @@ import { prisma } from "../lib/prisma.js";
 
 const activeRentalStatuses = ["PENDING", "ACTIVE"];
 
-export function activeRentalTargetWhere(propertyId, rentType, roomId) {
+export function activeRentalTargetWhere(
+  propertyId,
+  rentType,
+  roomId,
+  asOfDate = new Date(),
+) {
+  const andConditions = [];
+
+  if (rentType === "INDIVIDUAL_ROOM") {
+    andConditions.push({
+      OR: [{ roomId }, { roomId: null }],
+    });
+  }
+
+  if (asOfDate) {
+    andConditions.push({
+      OR: [{ endDate: null }, { endDate: { gte: asOfDate } }],
+    });
+  }
+
   return {
     propertyId,
     status: { in: activeRentalStatuses },
-    ...(rentType === "INDIVIDUAL_ROOM"
-      ? { OR: [{ roomId }, { roomId: null }] }
-      : {}),
+    ...(andConditions.length > 0 ? { AND: andConditions } : {}),
   };
 }
 
