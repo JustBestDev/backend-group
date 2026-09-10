@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import createError from "http-errors";
+import { activeRentalTargetWhere } from "./rental.service.js";
 import {
   deleteRoomImageFromCloudinary,
   deleteUploadedRoomImage,
@@ -292,6 +293,8 @@ export async function getRoomService(roomId) {
             id: true,
             title: true,
             ownerId: true,
+            rentType: true,
+            propertyStatus: true,
             owner: {
               select: {
                 id: true,
@@ -306,6 +309,22 @@ export async function getRoomService(roomId) {
     if (!room) {
       throw createError(401, "Invalid room id");
     }
+
+    if (room.property?.rentType === "WHOLE_UNIT") {
+      const activeRental = await prisma.rental.findFirst({
+        where: activeRentalTargetWhere(room.property.id, "WHOLE_UNIT", null),
+        select: { id: true, status: true },
+      });
+
+      if (room.property.propertyStatus !== "AVAILABLE" || activeRental) {
+        return {
+          ...room,
+          status: activeRental?.status === "PENDING" ? "RESERVED" : "RENTED",
+          isReserved: activeRental?.status === "PENDING",
+        };
+      }
+    }
+
     return room;
   } catch (error) {
     if (error.status) {

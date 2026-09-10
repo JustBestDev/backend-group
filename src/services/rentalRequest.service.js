@@ -59,6 +59,21 @@ export async function createRentalRequestService(requesterId, body) {
           throw createError(400, "roomId is not allowed for a whole-unit request");
         }
 
+        const conflictingRental = await tx.rental.findFirst({
+          where: activeRentalTargetWhere(
+            property.id,
+            property.rentType,
+            room?.id,
+          ),
+          select: { id: true },
+        });
+        if (conflictingRental) {
+          throw createError(
+            409,
+            "This property or room already has a pending or active rental",
+          );
+        }
+
         if (body.communityPostId) {
           const communityPost = await tx.communityPost.findUnique({
             where: { id: body.communityPostId },
