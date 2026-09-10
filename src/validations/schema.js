@@ -1,15 +1,44 @@
 import { z } from "zod";
 import { UserStatus } from "../../generated/prisma/client.js";
 
+const nullableBirthdate = z.preprocess(
+  (value) => (value === "" ? null : value),
+  z
+    .union([
+      z.iso.date().transform(
+        (value) => new Date(`${value}T00:00:00.000Z`)
+      ),
+      z.null(),
+    ])
+    .refine(
+      (value) =>
+        value === null ||
+        value >= new Date("1900-01-01T00:00:00.000Z"),
+      "birthdate must be on or after 1900-01-01"
+    )
+    .refine(
+      (value) => value === null || value <= new Date(),
+      "birthdate cannot be in the future"
+    )
+);
+
 export const registerSchema = z
   .object({
-    username: z.string().min(3, "username must be at least 3 characters"),
+    username: z
+      .string()
+      .min(3, "username must be at least 3 characters"),
 
     email: z.string().email("invalid email"),
 
-    password: z.string().min(6, "password must be at least 6 characters"),
+    password: z
+      .string()
+      .min(6, "password must be at least 6 characters"),
 
-    confirmPassword: z.string().min(6, "confirm password is required"),
+    confirmPassword: z
+      .string()
+      .min(6, "confirm password is required"),
+
+    birthdate: nullableBirthdate.optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "confirmPassword must match password",
@@ -39,23 +68,6 @@ const nullableProfileString = (schema = z.string()) =>
     (value) => (value === "" ? null : value),
     schema.nullable().optional()
   );
-
-const nullableBirthdate = z.preprocess(
-  (value) => (value === "" ? null : value),
-  z
-    .union([
-      z.iso.date().transform((value) => new Date(`${value}T00:00:00.000Z`)),
-      z.null(),
-    ])
-    .refine(
-      (value) => value === null || value >= new Date("1900-01-01T00:00:00.000Z"),
-      "birthdate must be on or after 1900-01-01"
-    )
-    .refine(
-      (value) => value === null || value <= new Date(),
-      "birthdate cannot be in the future"
-    )
-);
 
 export const updateProfileSchema = z
   .object({

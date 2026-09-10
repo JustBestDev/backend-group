@@ -38,7 +38,8 @@ export const findUserById = async (id) => {
 export const createUser = async (
   username,
   email,
-  hashedPassword
+  hashedPassword,
+  birthdate
 ) => {
   return await prisma.user.create({
     data: {
@@ -47,7 +48,9 @@ export const createUser = async (
       password: hashedPassword,
 
       profile: {
-        create: {},
+        create: {
+          ...(birthdate !== undefined && { birthdate }),
+        },
       },
     },
 
