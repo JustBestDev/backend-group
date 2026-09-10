@@ -287,6 +287,20 @@ export async function getRoomService(roomId) {
       },
       include: {
         images: true,
+        property: {
+          select: {
+            id: true,
+            title: true,
+            ownerId: true,
+            owner: {
+              select: {
+                id: true,
+                username: true,
+                profile: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!room) {

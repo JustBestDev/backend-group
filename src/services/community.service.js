@@ -69,6 +69,13 @@ export async function getAllCommunitiesService() {
         creator: {
           select: communityPostCreatorSelect,
         },
+        joinRequests: {
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+          },
+        },
       },
     });
     return communities;
@@ -90,6 +97,13 @@ export async function getAllCommunitiesByIdService(postId) {
         property: true,
         creator: {
           select: communityPostCreatorSelect,
+        },
+        joinRequests: {
+          select: {
+            id: true,
+            userId: true,
+            status: true,
+          },
         },
       },
     });
@@ -167,6 +181,13 @@ export async function getZodiacMatchesService(
                 },
               },
             },
+          },
+        },
+        joinRequests: {
+          select: {
+            id: true,
+            userId: true,
+            status: true,
           },
         },
       },
