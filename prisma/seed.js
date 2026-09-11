@@ -21,6 +21,12 @@ const SEED_EMAILS = [
   "zodiac.sagittarius@test.local",
   "zodiac.unknown@test.local",
 ];
+const TRANSIT_TEST_PROPERTIES = [
+  { title: "Asok Transit Test", latitude: 13.7395, longitude: 100.5630 },
+  { title: "Far Transit Test", latitude: 13.7530, longitude: 100.5780 },
+  { title: "No Coordinates Test", latitude: null, longitude: null },
+  { title: "Phrom Phong Transit Test", latitude: 13.7310, longitude: 100.5708 },
+];
 const PROPERTY_TITLES = [
   "Team Test Condo",
   "Team Test Pending House",
@@ -32,6 +38,7 @@ const PROPERTY_TITLES = [
   "Mixed Vibes Group",
   "Birthday Missing Test",
   "Full Water Community",
+  ...TRANSIT_TEST_PROPERTIES.map(({ title }) => title),
 ];
 const IMAGE_BASE = "https://placehold.co/1200x800/png?text=";
 const AMENITIES = [
@@ -200,6 +207,13 @@ async function main() {
   await prisma.property.create({ data: { ownerId: owner.id, title: PROPERTY_TITLES[3], description: "Approved property closed by its owner.", propertyType: "DORMITORY", rentType: "WHOLE_UNIT", monthlyRent: 14500, totalBedrooms: 2, publishStatus: "APPROVED", propertyStatus: "CLOSED", address: { create: { province: "Chon Buri", district: "Bang Lamung", postcode: "20150" } } } });
   const propertyE = await prisma.property.create({ data: { ownerId: ownerTwo.id, title: PROPERTY_TITLES[4], description: "Secondary owner's approved property for authorization checks.", propertyType: "HOUSE", rentType: "INDIVIDUAL_ROOM", monthlyRent: 7200, deposit: 7200, totalBedrooms: 1, publishStatus: "APPROVED", propertyStatus: "AVAILABLE", address: { create: { province: "Chiang Mai", district: "Mueang Chiang Mai", postcode: "50000", latitude: 18.7883, longitude: 98.9853 } }, images: { create: { imageUrl: `${IMAGE_BASE}Owner+Two+House`, isCover: true } }, rooms: { create: { roomName: "Owner Two Room", description: "Ownership authorization test room", monthlyRent: 7200, status: "AVAILABLE", capacity: 2 } } }, include: { rooms: true } });
 
+  for (const transitProperty of TRANSIT_TEST_PROPERTIES) {
+    await prisma.property.create({ data: {
+      ownerId: owner.id, title: transitProperty.title, description: "Approved property for coordinate-based transit filter testing.", propertyType: "CONDO", rentType: "WHOLE_UNIT", monthlyRent: 12000, deposit: 12000, totalBedrooms: 1, publishStatus: "APPROVED", propertyStatus: "AVAILABLE",
+      address: { create: { province: "Bangkok", district: "Watthana", subDistrict: "Khlong Toei Nuea", postcode: "10110", latitude: transitProperty.latitude, longitude: transitProperty.longitude } },
+    } });
+  }
+
   const zodiacScenarios = [
     { title: PROPERTY_TITLES[5], description: "Very high compatibility community for a Pisces test user.", memberEmails: ["zodiac.cancer@test.local", "zodiac.scorpio@test.local"], status: "OPEN" },
     { title: PROPERTY_TITLES[6], description: "High compatibility earth-sign community for a Pisces test user.", memberEmails: ["zodiac.taurus@test.local", "zodiac.capricorn@test.local"], status: "OPEN" },
@@ -227,7 +241,7 @@ async function main() {
 
   const posts = [];
   for (const data of [
-    { propertyId: propertyA.id, creatorId: user.id, title: "Team Test Open Community", description: "Open group looking for one more housemate.", requiredMembers: 3, status: "OPEN" },
+    { propertyId: propertyA.id, roomId: propertyA.rooms[1].id, creatorId: user.id, title: "Team Test Open Community", description: "Open group looking for one more housemate.", requiredMembers: 3, status: "OPEN" },
     { propertyId: propertyA.id, creatorId: userTwo.id, title: "Team Test Full Community", description: "A full group for UI state testing.", requiredMembers: 2, status: "FULL" },
     { propertyId: propertyA.id, creatorId: owner.id, title: "Team Test Closed Community", description: "A closed community post.", requiredMembers: 3, status: "CLOSED" },
   ]) posts.push(await prisma.communityPost.create({ data }));

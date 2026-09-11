@@ -20,7 +20,50 @@ import {
   findExistingSupportConversation,
   createSupportConversation,
   countUnreadMessagesByUserId,
+  findShareablePropertyById,
+  findShareableRoomById,
 } from "../services/conversation.service.js";
+
+const MESSAGE_TYPES = new Set(["TEXT", "PROPERTY_SHARE", "ROOM_SHARE"]);
+
+export const validateMessagePayload = ({ message, type = "TEXT", propertyId, roomId }) => {
+  if (!MESSAGE_TYPES.has(type)) throw createError(400, "Invalid message type");
+  if (message !== undefined && message !== null && typeof message !== "string") {
+    throw createError(400, "Message must be a string");
+  }
+  const content = message?.trim() || "";
+  if (type === "TEXT" && !content) throw createError(400, "Message is required");
+  if (content.length > 5000) throw createError(400, "Message must not exceed 5000 characters");
+
+  const requiredId = type === "PROPERTY_SHARE" ? propertyId : type === "ROOM_SHARE" ? roomId : null;
+  if (type !== "TEXT" && (!Number.isInteger(Number(requiredId)) || Number(requiredId) < 1)) {
+    throw createError(400, `Invalid ${type === "PROPERTY_SHARE" ? "property" : "room"} ID`);
+  }
+
+  return {
+    message: content || null,
+    type,
+    propertyId: type === "PROPERTY_SHARE" ? Number(propertyId) : null,
+    roomId: type === "ROOM_SHARE" ? Number(roomId) : null,
+  };
+};
+
+export const requireConversationMembership = (membership) => {
+  if (!membership) throw createError(403, "You are not a member of this conversation");
+};
+
+export const requireShareableListing = async (
+  payload,
+  findProperty = findShareablePropertyById,
+  findRoom = findShareableRoomById,
+) => {
+  if (payload.type === "PROPERTY_SHARE" && !(await findProperty(payload.propertyId))) {
+    throw createError(404, "Property not found or unavailable");
+  }
+  if (payload.type === "ROOM_SHARE" && !(await findRoom(payload.roomId))) {
+    throw createError(404, "Room not found or unavailable");
+  }
+};
 
 export const createAdminSupportConversation = async (req, res, next) => {
   try {
@@ -312,14 +355,7 @@ export const getConversationMessages = async (
         currentUserId
       );
 
-    if (!membership) {
-      return next(
-        createError(
-          403,
-          "You are not a member of this conversation"
-        )
-      );
-    }
+    requireConversationMembership(membership);
 
     const [messages, total] =
       await Promise.all([
@@ -369,8 +405,6 @@ export const sendConversationMessage = async (
       req.params.conversationId
     );
 
-    const { message } = req.body;
-
     if (
       !Number.isInteger(conversationId) ||
       conversationId < 1
@@ -383,26 +417,7 @@ export const sendConversationMessage = async (
       );
     }
 
-    if (
-      typeof message !== "string" ||
-      !message.trim()
-    ) {
-      return next(
-        createError(
-          400,
-          "Message is required"
-        )
-      );
-    }
-
-    if (message.trim().length > 5000) {
-      return next(
-        createError(
-          400,
-          "Message must not exceed 5000 characters"
-        )
-      );
-    }
+    const payload = validateMessagePayload(req.body);
 
     const membership =
       await findConversationMember(
@@ -410,20 +425,15 @@ export const sendConversationMessage = async (
         currentUserId
       );
 
-    if (!membership) {
-      return next(
-        createError(
-          403,
-          "You are not a member of this conversation"
-        )
-      );
-    }
+    requireConversationMembership(membership);
+
+    await requireShareableListing(payload);
 
     const newMessage =
       await createConversationMessage(
         conversationId,
         currentUserId,
-        message
+        payload
       );
 
     await emitNewConversationMessage(

@@ -39,8 +39,24 @@ const communityMemberSelect = {
   },
 };
 
-async function ensureCommunityPostPropertyIsAvailable(propertyId) {
-  const property = await prisma.property.findFirst({
+const communityRoomSelect = {
+  id: true,
+  roomName: true,
+  monthlyRent: true,
+  status: true,
+  capacity: true,
+  images: {
+    select: { id: true, imageUrl: true, isCover: true },
+    orderBy: [{ isCover: "desc" }, { createdAt: "asc" }],
+  },
+};
+
+export async function ensureCommunityPostListingIsAvailable(
+  propertyId,
+  roomId,
+  database = prisma,
+) {
+  const property = await database.property.findFirst({
     where: {
       id: Number(propertyId),
       deletedAt: null,
@@ -57,11 +73,22 @@ async function ensureCommunityPostPropertyIsAvailable(propertyId) {
     throw createError(404, "Property not found");
   }
 
-  const activeRental = await prisma.rental.findFirst({
+  if (roomId != null) {
+    const room = await database.room.findUnique({
+      where: { id: Number(roomId) },
+      select: { id: true, propertyId: true },
+    });
+    if (!room) throw createError(404, "Room not found");
+    if (room.propertyId !== property.id) {
+      throw createError(400, "Room does not belong to this property");
+    }
+  }
+
+  const activeRental = await database.rental.findFirst({
     where: activeRentalTargetWhere(
       property.id,
       property.rentType,
-      null,
+      roomId ?? null,
     ),
     select: { id: true },
   });
@@ -74,9 +101,9 @@ async function ensureCommunityPostPropertyIsAvailable(propertyId) {
   }
 }
 
-export async function getAllCommunitiesService() {
+export async function getAllCommunitiesService(database = prisma) {
   try {
-    const communities = await prisma.communityPost.findMany({
+    const communities = await database.communityPost.findMany({
       include: {
         property: {
           include: {
@@ -84,6 +111,7 @@ export async function getAllCommunitiesService() {
             address: true,
           },
         },
+        room: { select: communityRoomSelect },
         creator: {
           select: communityPostCreatorSelect,
         },
@@ -105,14 +133,15 @@ export async function getAllCommunitiesService() {
   }
 }
 
-export async function getAllCommunitiesByIdService(postId) {
+export async function getAllCommunitiesByIdService(postId, database = prisma) {
   try {
-    const communities = await prisma.communityPost.findUnique({
+    const communities = await database.communityPost.findUnique({
       where: {
         id: Number(postId),
       },
       include: {
         property: true,
+        room: { select: communityRoomSelect },
         creator: {
           select: communityPostCreatorSelect,
         },
@@ -183,6 +212,7 @@ export async function getZodiacMatchesService(
             address: true,
           },
         },
+        room: { select: communityRoomSelect },
         members: {
           select: {
             memberRole: true,
@@ -370,6 +400,8 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
       select: {
         id: true,
         creatorId: true,
+        propertyId: true,
+        roomId: true,
       },
     });
 
@@ -381,9 +413,12 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
       throw createError(403, "Forbidden");
     }
 
-    // Validate a replacement property only when the patch includes propertyId.
-    if (postData.propertyId !== undefined) {
-      await ensureCommunityPostPropertyIsAvailable(postData.propertyId);
+    // Validate the final property/room pair when either listing reference changes.
+    if (postData.propertyId !== undefined || postData.roomId !== undefined) {
+      await ensureCommunityPostListingIsAvailable(
+        postData.propertyId ?? communityPost.propertyId,
+        postData.roomId !== undefined ? postData.roomId : communityPost.roomId,
+      );
     }
 
     const updateCommunityPost = await prisma.communityPost.update({
@@ -402,7 +437,13 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
             },
           },
         }),
+        ...(postData.roomId !== undefined && {
+          room: postData.roomId == null
+            ? { disconnect: true }
+            : { connect: { id: Number(postData.roomId) } },
+        }),
       },
+      include: { room: { select: communityRoomSelect } },
     });
     return updateCommunityPost;
   } catch (error) {
@@ -413,12 +454,16 @@ export async function updateCommunityPostService(postData, creatorId, postId) {
   }
 }
 
-export async function createCommunityPostService(postData, creatorId) {
+export async function createCommunityPostService(postData, creatorId, database = prisma) {
   try {
     // A new post must reference an eligible property.
-    await ensureCommunityPostPropertyIsAvailable(postData.propertyId);
+    await ensureCommunityPostListingIsAvailable(
+      postData.propertyId,
+      postData.roomId,
+      database,
+    );
 
-    const createCommunityPost = await prisma.communityPost.create({
+    const createCommunityPost = await database.communityPost.create({
       data: {
         title: postData.title,
         description: postData.description,
@@ -429,12 +474,16 @@ export async function createCommunityPostService(postData, creatorId) {
             id: Number(postData.propertyId),
           },
         },
+        ...(postData.roomId != null && {
+          room: { connect: { id: Number(postData.roomId) } },
+        }),
         creator: {
           connect: {
             id: Number(creatorId),
           },
         },
       },
+      include: { room: { select: communityRoomSelect } },
     });
     return createCommunityPost;
   } catch (error) {
