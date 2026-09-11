@@ -68,6 +68,12 @@ enum RoomStatus {
   RENTED
 }
 
+enum MessageType {
+  TEXT
+  PROPERTY_SHARE
+  ROOM_SHARE
+}
+
 enum CommunityPostStatus {
   OPEN
   FULL
@@ -148,13 +154,13 @@ model Profile {
 }
 
 model OwnerApplication {
-  id           Int               @id @default(autoincrement())
-  userId       Int
-  reviewedById Int?
-  status       ApplicationStatus @default(PENDING)
-  rejectReason String?
-  createdAt    DateTime          @default(now())
-  reviewedAt   DateTime?
+  id            Int               @id @default(autoincrement())
+  userId        Int
+  reviewedById  Int?
+  status        ApplicationStatus @default(PENDING)
+  rejectReason  String?
+  createdAt     DateTime          @default(now())
+  reviewedAt    DateTime?
   adminViewedAt DateTime?
 
   user       User                       @relation("OwnerApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -195,9 +201,9 @@ model Property {
 
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  address PropertyAddress?
-  rooms   Room[]
-  images  PropertyImage[]
+  address    PropertyAddress?
+  rooms      Room[]
+  images     PropertyImage[]
   amenities  PropertyAmenity[]
   houseRules PropertyHouseRule[]
 
@@ -205,6 +211,7 @@ model Property {
   conversations  Conversation[]
   rentals        Rental[]
   rentalRequests RentalRequest[]
+  sharedMessages Message[]       @relation("SharedPropertyMessages")
 
   @@index([deletedAt, publishStatus, createdAt])
 }
@@ -275,6 +282,8 @@ model Room {
   rentals        Rental[]
   images         RoomImage[]
   rentalRequests RentalRequest[]
+  communityPosts CommunityPost[]
+  sharedMessages Message[]       @relation("SharedRoomMessages")
 }
 
 model RoomImage {
@@ -306,6 +315,7 @@ model PropertyImage {
 model CommunityPost {
   id              Int                 @id @default(autoincrement())
   propertyId      Int
+  roomId          Int?
   creatorId       Int
   title           String
   description     String?             @db.Text
@@ -315,11 +325,14 @@ model CommunityPost {
   updatedAt       DateTime            @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  room     Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
   creator  User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   joinRequests   JoinRequest[]
   members        CommunityMember[]
   rentalRequests RentalRequest[]
+
+  @@index([roomId])
 }
 
 model RentalRequest {
@@ -398,16 +411,25 @@ model ConversationMember {
 }
 
 model Message {
-  id             Int      @id @default(autoincrement())
-  conversationId Int
-  senderId       Int
-  message        String   @db.Text
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  id               Int         @id @default(autoincrement())
+  conversationId   Int
+  senderId         Int
+  message          String?     @db.Text
+  type             MessageType @default(TEXT)
+  sharedPropertyId Int?
+  sharedRoomId     Int?
+  isRead           Boolean     @default(false)
+  createdAt        DateTime    @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  sharedProperty Property? @relation("SharedPropertyMessages", fields: [sharedPropertyId], references: [id], onDelete: SetNull)
+  sharedRoom     Room?     @relation("SharedRoomMessages", fields: [sharedRoomId], references: [id], onDelete: SetNull)
+
+  @@index([sharedPropertyId])
+  @@index([sharedRoomId])
 }
 
 model Rental {

@@ -9,6 +9,56 @@ const conversationUserInclude = {
   },
 };
 
+const listingImageSelect = {
+  where: { isCover: true },
+  select: { imageUrl: true },
+  take: 1,
+};
+
+const messageInclude = {
+  sender: {
+    select: {
+      id: true,
+      username: true,
+      profile: { select: { firstName: true, lastName: true, profileImageUrl: true } },
+    },
+  },
+  sharedProperty: {
+    select: {
+      id: true,
+      title: true,
+      monthlyRent: true,
+      propertyStatus: true,
+      propertyType: true,
+      deletedAt: true,
+      images: listingImageSelect,
+    },
+  },
+  sharedRoom: {
+    select: {
+      id: true,
+      roomName: true,
+      monthlyRent: true,
+      status: true,
+      capacity: true,
+      images: listingImageSelect,
+      property: { select: { id: true, title: true, deletedAt: true } },
+    },
+  },
+};
+
+const hideDeletedListings = (message) => {
+  const { deletedAt: propertyDeletedAt, ...sharedProperty } = message.sharedProperty || {};
+  const { deletedAt: parentDeletedAt, ...parentProperty } = message.sharedRoom?.property || {};
+  return {
+    ...message,
+    sharedProperty: !message.sharedProperty || propertyDeletedAt ? null : sharedProperty,
+    sharedRoom: !message.sharedRoom || parentDeletedAt
+      ? null
+      : { ...message.sharedRoom, property: parentProperty },
+  };
+};
+
 export const findActiveAdmin = () => prisma.user.findFirst({
   where: { role: "ADMIN", status: "ACTIVE" }, select: { id: true }, orderBy: { id: "asc" },
 });
@@ -258,6 +308,7 @@ export const findConversationsByUserId = async (
           select: {
             id: true,
             message: true,
+            type: true,
             senderId: true,
             isRead: true,
             createdAt: true,
@@ -395,22 +446,7 @@ export const findMessagesByConversationId =
         conversationId: Number(conversationId),
       },
 
-      include: {
-        sender: {
-          select: {
-            id: true,
-            username: true,
-
-            profile: {
-              select: {
-                firstName: true,
-                lastName: true,
-                profileImageUrl: true,
-              },
-            },
-          },
-        },
-      },
+      include: messageInclude,
 
       orderBy: {
         createdAt: "desc",
@@ -420,8 +456,33 @@ export const findMessagesByConversationId =
       take: limit,
     });
 
-    return messages;
+    return messages.map(hideDeletedListings);
   };
+
+export const findShareablePropertyById = (propertyId) => prisma.property.findFirst({
+  where: {
+    id: Number(propertyId),
+    deletedAt: null,
+    publishStatus: "APPROVED",
+    propertyStatus: "AVAILABLE",
+  },
+  select: { id: true },
+});
+
+export const findShareableRoomById = (roomId) => prisma.room.findFirst({
+  where: {
+    id: Number(roomId),
+    status: "AVAILABLE",
+    property: {
+      is: {
+        deletedAt: null,
+        publishStatus: "APPROVED",
+        propertyStatus: "AVAILABLE",
+      },
+    },
+  },
+  select: { id: true },
+});
 
 export const countConversationMessages = async (
   conversationId
@@ -440,7 +501,7 @@ export const countConversationMessages = async (
 export const createConversationMessage = async (
   conversationId,
   senderId,
-  message
+  { message, type, propertyId, roomId }
 ) => {
   const newMessage =
     await prisma.$transaction(async (tx) => {
@@ -452,25 +513,12 @@ export const createConversationMessage = async (
 
             senderId: Number(senderId),
 
-            message: message.trim(),
+            message: message?.trim() || null,
+            type,
+            sharedPropertyId: type === "PROPERTY_SHARE" ? propertyId : null,
+            sharedRoomId: type === "ROOM_SHARE" ? roomId : null,
           },
-
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true,
-
-                profile: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                    profileImageUrl: true,
-                  },
-                },
-              },
-            },
-          },
+          include: messageInclude,
         });
 
       await tx.conversation.update({
@@ -486,7 +534,7 @@ export const createConversationMessage = async (
       return createdMessage;
     });
 
-  return newMessage;
+  return hideDeletedListings(newMessage);
 };
 
 // Mark ข้อความของอีกฝ่ายว่าอ่านแล้ว
