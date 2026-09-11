@@ -93,6 +93,8 @@ export const updateProfileSchema = z
 export const communityPostSchema = z.object({
   propertyId: z.number().min(1, "propertyId must be at least 1"),
 
+  roomId: z.number().int().positive("roomId must be at least 1").nullable().optional(),
+
   title: z.string().min(6, "title must be at least 6 characters"),
 
   description: z.string(),

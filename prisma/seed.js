@@ -227,7 +227,7 @@ async function main() {
 
   const posts = [];
   for (const data of [
-    { propertyId: propertyA.id, creatorId: user.id, title: "Team Test Open Community", description: "Open group looking for one more housemate.", requiredMembers: 3, status: "OPEN" },
+    { propertyId: propertyA.id, roomId: propertyA.rooms[1].id, creatorId: user.id, title: "Team Test Open Community", description: "Open group looking for one more housemate.", requiredMembers: 3, status: "OPEN" },
     { propertyId: propertyA.id, creatorId: userTwo.id, title: "Team Test Full Community", description: "A full group for UI state testing.", requiredMembers: 2, status: "FULL" },
     { propertyId: propertyA.id, creatorId: owner.id, title: "Team Test Closed Community", description: "A closed community post.", requiredMembers: 3, status: "CLOSED" },
   ]) posts.push(await prisma.communityPost.create({ data }));
