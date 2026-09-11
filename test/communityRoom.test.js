@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   createCommunityPostService,
   ensureCommunityPostListingIsAvailable,
+  getAllCommunitiesByIdService,
   getAllCommunitiesService,
 } from "../src/services/community.service.js";
 import { communityPostSchema } from "../src/validations/schema.js";
@@ -35,6 +36,15 @@ const makeDatabase = ({ room = { id: 9, propertyId: 12 } } = {}) => {
         roomId: 9,
         room: { id: 9, roomName: "Room B", monthlyRent: "9000", status: "AVAILABLE", capacity: 2, images: [] },
       }],
+      findUnique: async ({ include }) => ({
+        id: 1,
+        property: include.property.include.images.select.imageUrl
+          ? { id: 12, images: [{ imageUrl: "property.jpg" }] }
+          : { id: 12 },
+        room: include.room.select.images
+          ? { id: 9, images: [{ imageUrl: "room.jpg" }] }
+          : { id: 9 },
+      }),
     },
   };
 };
@@ -74,4 +84,11 @@ test("Community listing responses include compact room data", async () => {
     capacity: 2,
     images: [],
   });
+});
+
+test("Community detail responses include room and property image data", async () => {
+  const post = await getAllCommunitiesByIdService(1, makeDatabase());
+
+  assert.equal(post.room.images[0].imageUrl, "room.jpg");
+  assert.equal(post.property.images[0].imageUrl, "property.jpg");
 });

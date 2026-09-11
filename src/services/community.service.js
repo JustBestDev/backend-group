@@ -140,7 +140,15 @@ export async function getAllCommunitiesByIdService(postId, database = prisma) {
         id: Number(postId),
       },
       include: {
-        property: true,
+        property: {
+          include: {
+            images: {
+              select: { id: true, imageUrl: true, isCover: true },
+              orderBy: [{ isCover: "desc" }, { createdAt: "asc" }],
+            },
+            address: true,
+          },
+        },
         room: { select: communityRoomSelect },
         creator: {
           select: communityPostCreatorSelect,
